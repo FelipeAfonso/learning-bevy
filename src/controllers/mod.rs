@@ -25,8 +25,8 @@ impl PlayerControllerState {
     }
     pub fn move_player(&mut self, key: KeyCode) {
         match key {
-            KeyCode::Up => self.y = -1.0,
-            KeyCode::Down => self.y = 1.0,
+            KeyCode::Up => self.y = 1.0,
+            KeyCode::Down => self.y = -1.0,
             KeyCode::Left => self.x = -1.0,
             KeyCode::Right => self.x = 1.0,
             KeyCode::LShift => self.boost = true,
@@ -36,7 +36,7 @@ impl PlayerControllerState {
     pub fn move_player_joystick(&mut self, val: f32, axis: GamepadAxisType) {
         match axis {
             GamepadAxisType::LeftStickX => self.x = val,
-            GamepadAxisType::LeftStickY => self.y = val * -1.0,
+            GamepadAxisType::LeftStickY => self.y = val,
             _ => (),
         }
     }
