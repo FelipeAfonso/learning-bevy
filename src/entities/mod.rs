@@ -1,18 +1,37 @@
+use std::task::Wake;
+
 use bevy::prelude::*;
 
+use crate::controllers::PlayerControllerState;
+
 #[derive(Component)]
-pub struct CubeEntity;
+pub struct PlayerEntity;
 
 pub struct EntitiesPlugin;
 impl Plugin for EntitiesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup).add_system(rotate_cube);
+        app.add_startup_system(setup).add_system(move_player);
     }
 }
 
-pub fn rotate_cube(time: Res<Time>, mut query: Query<&mut Transform, With<CubeEntity>>) {
-    for mut cube in &mut query {
-        cube.rotate_y(3.0 * time.delta_seconds())
+pub fn rotate_player(time: Res<Time>, mut query: Query<&mut Transform, With<PlayerEntity>>) {
+    for mut player in &mut query {
+        player.rotate_y(3.0 * time.delta_seconds())
+    }
+}
+
+pub fn move_player(
+    time: Res<Time>,
+    state: Res<PlayerControllerState>,
+    mut query: Query<&mut Transform, With<PlayerEntity>>,
+) {
+    let st = state.get_state();
+    //println!(" -- x: {} -- y: {} --", st.0, st.1);
+    let speed: f32 = if state.is_boosting() { 4.0 } else { 2.0 };
+
+    for mut player in &mut query {
+        player.translation.x += st.0 * speed * time.delta_seconds();
+        player.translation.z += st.1 * speed * time.delta_seconds();
     }
 }
 
@@ -28,10 +47,15 @@ pub fn setup(
     });
 
     commands.spawn((
-        CubeEntity,
+        PlayerEntity,
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            mesh: meshes.add(Mesh::from(shape::Cylinder {
+                radius: 0.5,
+                height: 2.0,
+                resolution: 16,
+                segments: 2,
+            })),
+            material: materials.add(Color::rgb(0.1, 0.2, 0.8).into()),
             transform: Transform::from_xyz(0.0, 0.5, 0.0),
             ..default()
         },
@@ -48,7 +72,7 @@ pub fn setup(
     });
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-5.0, 10.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(0.0, 10.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 }
