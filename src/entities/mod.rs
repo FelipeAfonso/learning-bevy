@@ -9,7 +9,10 @@ use crate::controllers::PlayerControllerState;
 pub struct PlayerEntity;
 
 #[derive(Component)]
-pub struct Enemy {
+pub struct PlayerAttached;
+
+#[derive(Component)]
+pub struct EnemyEntity {
     revert_direction: bool,
 }
 
@@ -56,17 +59,17 @@ fn spawn_enemies(
 ) {
     config.timer.tick(time.delta());
 
-    let mut rng = rand::thread_rng();
-
-    let window = window_query.get_single().unwrap();
-    let half_height = window.height() / 2.;
-    let half_width = window.width() / 2.;
-    let revert_direction = rand::random::<bool>();
-
-    let y: f32 = (rng.gen::<f32>() * window.height()) - half_height;
     if config.timer.finished() {
+        let mut rng = rand::thread_rng();
+
+        let window = window_query.get_single().unwrap();
+        let half_height = window.height() / 2.;
+        let half_width = window.width() / 2.;
+        let revert_direction = rand::random::<bool>();
+
+        let y: f32 = (rng.gen::<f32>() * window.height()) - half_height;
         commands.spawn((
-            Enemy { revert_direction },
+            EnemyEntity { revert_direction },
             SpriteBundle {
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(30.0, 20.0)),
@@ -92,7 +95,7 @@ fn spawn_enemies(
     }
 }
 
-fn move_enemies(mut query: Query<(&mut Transform, &Enemy)>, time: Res<Time>) {
+fn move_enemies(mut query: Query<(&mut Transform, &EnemyEntity)>, time: Res<Time>) {
     let movement: f32 = time.delta_seconds() * 64.;
     for mut enemy in &mut query {
         enemy.0.translation.x += if enemy.1.revert_direction {
@@ -139,6 +142,7 @@ pub fn setup(
 
     commands.spawn((
         PlayerEntity,
+        PlayerAttached,
         SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2::new(5.0, 1000.0)),
