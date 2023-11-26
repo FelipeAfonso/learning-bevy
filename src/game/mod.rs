@@ -13,6 +13,7 @@ pub enum GameState {
     Active,
     StartMenu,
     Pause,
+    Init,
 }
 
 //#[derive(Resource)]
@@ -28,13 +29,15 @@ impl Plugin for GamePlugin {
             .add_state::<GameState>()
             .add_system(detect_intersection_player)
             .add_system(toggle_pause)
+            .add_system(toggle_start)
             .add_system(update_debug_text);
     }
 }
 
 fn init(mut state: ResMut<State<GameState>>) {
-    state.0 = GameState::Active
+    state.0 = GameState::StartMenu
 }
+
 pub fn toggle_pause(
     mut keys: ResMut<Input<KeyCode>>,
     mut gamepad_events: EventReader<GamepadButtonChangedEvent>,
@@ -45,10 +48,28 @@ pub fn toggle_pause(
         .find(|e| e.button_type == GamepadButtonType::Start && e.value > 0.)
         .is_some();
     if !!keys.just_pressed(KeyCode::Escape) || start_button_pressed {
-        if state.0 == GameState::Active {
-            state.0 = GameState::Pause;
-        } else {
-            state.0 = GameState::Active;
+        state.0 = match state.0 {
+            GameState::Active => GameState::Pause,
+            GameState::Pause => GameState::Active,
+            _ => state.0,
+        };
+        keys.reset(KeyCode::Escape);
+    }
+}
+
+pub fn toggle_start(
+    mut keys: ResMut<Input<KeyCode>>,
+    mut gamepad_events: EventReader<GamepadButtonChangedEvent>,
+    mut state: ResMut<State<GameState>>,
+) {
+    let start_button_pressed = gamepad_events
+        .iter()
+        .find(|e| e.button_type == GamepadButtonType::Start && e.value > 0.)
+        .is_some();
+
+    if !!keys.just_pressed(KeyCode::Escape) || start_button_pressed {
+        if state.0 == GameState::GameOver || state.0 == GameState::StartMenu {
+            state.0 = GameState::Init;
         }
         keys.reset(KeyCode::Escape);
     }
@@ -60,6 +81,7 @@ pub fn update_debug_text(mut texts: Query<&mut Text>, state: Res<State<GameState
         GameState::Active => "Active",
         GameState::GameOver => "Game Over",
         GameState::StartMenu => "Start Menu",
+        GameState::Init => "Restarting",
     };
     for mut text in &mut texts {
         text.sections[0].value = ["State: ", state_str].join("").into();

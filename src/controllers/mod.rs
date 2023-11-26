@@ -12,6 +12,7 @@ pub struct PlayerControllerState {
     y: f32,
     boost: bool,
 }
+
 impl PlayerControllerState {
     pub fn release_move_player(&mut self, key: KeyCode) {
         match key {
@@ -80,7 +81,6 @@ pub fn player_controller(
     for ev in joy_b_evr.iter() {
         state.move_player_joystick_buttons(ev.value, ev.button_type)
     }
-
     for ev in key_evr.iter() {
         match ev.state {
             ButtonState::Pressed => state.move_player(ev.key_code.unwrap_or(KeyCode::Space)),
@@ -90,6 +90,7 @@ pub fn player_controller(
         }
     }
 }
+
 pub fn setup(mut commands: Commands) {
     commands.insert_resource(PlayerControllerState {
         x: 0.0,
