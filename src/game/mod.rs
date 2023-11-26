@@ -1,4 +1,5 @@
 use bevy::{
+    input::gamepad::GamepadButtonChangedEvent,
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
 };
@@ -33,8 +34,16 @@ impl Plugin for GamePlugin {
 fn init(mut state: ResMut<State<GameState>>) {
     state.0 = GameState::Active
 }
-pub fn toggle_pause(mut keys: ResMut<Input<KeyCode>>, mut state: ResMut<State<GameState>>) {
-    if keys.just_pressed(KeyCode::Escape) {
+pub fn toggle_pause(
+    mut keys: ResMut<Input<KeyCode>>,
+    mut gamepad_events: EventReader<GamepadButtonChangedEvent>,
+    mut state: ResMut<State<GameState>>,
+) {
+    let start_button_pressed = gamepad_events
+        .iter()
+        .find(|e| e.button_type == GamepadButtonType::Start && e.value > 0.)
+        .is_some();
+    if !!keys.just_pressed(KeyCode::Escape) || start_button_pressed {
         if state.0 == GameState::Active {
             state.0 = GameState::Pause;
         } else {
