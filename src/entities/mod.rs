@@ -133,14 +133,24 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
     });
     commands.spawn(
-        TextBundle::from_section(
-            "State: Active",
-            TextStyle {
-                font_size: 20.,
-                color: Color::WHITE,
-                font: asset_server.load("fonts/geist.ttf"),
-            },
-        )
+        TextBundle::from_sections([
+            TextSection::new(
+                "State: Active\n",
+                TextStyle {
+                    font_size: 20.,
+                    color: Color::WHITE,
+                    font: asset_server.load("fonts/geist.ttf"),
+                },
+            ),
+            TextSection::new(
+                "Score: 0",
+                TextStyle {
+                    font_size: 20.,
+                    color: Color::WHITE,
+                    font: asset_server.load("fonts/geist.ttf"),
+                },
+            ),
+        ])
         .with_style(Style {
             position_type: PositionType::Absolute,
             position: UiRect {
