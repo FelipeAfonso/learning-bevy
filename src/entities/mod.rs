@@ -3,7 +3,7 @@ use std::time::Duration;
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
 use rand::Rng;
 
-use crate::controllers::PlayerControllerState;
+use crate::{controllers::PlayerControllerState, game::GameState};
 
 #[derive(Component)]
 pub struct PlayerEntity;
@@ -38,15 +38,18 @@ pub fn move_player(
     time: Res<Time>,
     state: Res<PlayerControllerState>,
     mut query: Query<&mut Transform, With<PlayerEntity>>,
+    game_state: Res<State<GameState>>,
 ) {
-    let st = state.get_state();
-    //println!(" -- x: {} -- y: {} --", st.0, st.1);
-    let speed: f32 = if state.is_boosting() { 256.0 } else { 128.0 };
+    if game_state.0 == GameState::Active {
+        let st = state.get_state();
+        //println!(" -- x: {} -- y: {} --", st.0, st.1);
+        let speed: f32 = if state.is_boosting() { 256.0 } else { 128.0 };
 
-    for mut player in &mut query {
-        player.translation.x += st.0 * speed * time.delta_seconds();
-        player.translation.y += st.1 * speed * time.delta_seconds();
-        println!("x: {}  y: {}", player.translation.x, player.translation.y)
+        for mut player in &mut query {
+            player.translation.x += st.0 * speed * time.delta_seconds();
+            player.translation.y += st.1 * speed * time.delta_seconds();
+            println!("x: {}  y: {}", player.translation.x, player.translation.y)
+        }
     }
 }
 
@@ -56,52 +59,62 @@ fn spawn_enemies(
     mut config: ResMut<EnemySpawner>,
     asset_server: Res<AssetServer>,
     window_query: Query<&Window, With<PrimaryWindow>>,
+    game_state: Res<State<GameState>>,
 ) {
-    config.timer.tick(time.delta());
+    if game_state.0 == GameState::Active {
+        config.timer.tick(time.delta());
 
-    if config.timer.finished() {
-        let mut rng = rand::thread_rng();
+        if config.timer.finished() {
+            let mut rng = rand::thread_rng();
 
-        let window = window_query.get_single().unwrap();
-        let half_height = window.height() / 2.;
-        let half_width = window.width() / 2.;
-        let revert_direction = rand::random::<bool>();
+            let window = window_query.get_single().unwrap();
+            let half_height = window.height() / 2.;
+            let half_width = window.width() / 2.;
 
-        let y: f32 = (rng.gen::<f32>() * window.height()) - half_height;
-        commands.spawn((
-            EnemyEntity { revert_direction },
-            SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(30.0, 20.0)),
-                    flip_x: revert_direction,
+            let revert_direction = rand::random::<bool>();
+
+            let y: f32 = (rng.gen::<f32>() * window.height()) - half_height;
+            commands.spawn((
+                EnemyEntity { revert_direction },
+                SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(30.0, 20.0)),
+                        flip_x: revert_direction,
+                        ..default()
+                    },
+                    texture: asset_server.load("sprites/enemy-1.png"),
+                    transform: Transform {
+                        translation: Vec3::from((
+                            if revert_direction {
+                                half_width
+                            } else {
+                                half_width * -1.
+                            },
+                            y,
+                            0.,
+                        )),
+                        ..default()
+                    },
                     ..default()
                 },
-                texture: asset_server.load("sprites/enemy-1.png"),
-                transform: Transform {
-                    translation: Vec3::from((
-                        if revert_direction {
-                            half_width
-                        } else {
-                            half_width * -1.
-                        },
-                        y,
-                        0.,
-                    )),
-                    ..default()
-                },
-                ..default()
-            },
-        ));
+            ));
+        }
     }
 }
 
-fn move_enemies(mut query: Query<(&mut Transform, &EnemyEntity)>, time: Res<Time>) {
-    let movement: f32 = time.delta_seconds() * 64.;
-    for mut enemy in &mut query {
-        enemy.0.translation.x += if enemy.1.revert_direction {
-            movement * -1.
-        } else {
-            movement
+fn move_enemies(
+    mut query: Query<(&mut Transform, &EnemyEntity)>,
+    time: Res<Time>,
+    game_state: Res<State<GameState>>,
+) {
+    if game_state.0 == GameState::Active {
+        let movement: f32 = time.delta_seconds() * 64.;
+        for mut enemy in &mut query {
+            enemy.0.translation.x += if enemy.1.revert_direction {
+                movement * -1.
+            } else {
+                movement
+            }
         }
     }
 }

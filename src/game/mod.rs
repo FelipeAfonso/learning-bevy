@@ -5,10 +5,42 @@ use bevy::{
 
 use crate::entities::{EnemyEntity, PlayerAttached, PlayerEntity};
 
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GameState {
+    #[default]
+    GameOver,
+    Active,
+    StartMenu,
+    Pause,
+}
+
+//#[derive(Resource)]
+//pub struct GameResources {
+//    energy: f32,
+//    score: u32,
+//}
+
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(detect_intersection_player);
+        app.add_startup_system(init)
+            .add_state::<GameState>()
+            .add_system(detect_intersection_player)
+            .add_system(toggle_pause);
+    }
+}
+
+fn init(mut state: ResMut<State<GameState>>) {
+    state.0 = GameState::Active
+}
+pub fn toggle_pause(mut keys: ResMut<Input<KeyCode>>, mut state: ResMut<State<GameState>>) {
+    if keys.just_pressed(KeyCode::Escape) {
+        if state.0 == GameState::Active {
+            state.0 = GameState::Pause;
+        } else {
+            state.0 = GameState::Active;
+        }
+        keys.reset(KeyCode::Escape);
     }
 }
 
