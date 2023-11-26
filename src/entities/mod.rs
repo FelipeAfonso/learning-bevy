@@ -153,6 +153,26 @@ pub fn setup(
         },
     ));
 
+    commands.spawn(
+        TextBundle::from_section(
+            "State: Active",
+            TextStyle {
+                font_size: 20.,
+                color: Color::WHITE,
+                font: asset_server.load("fonts/geist.ttf"),
+            },
+        )
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            position: UiRect {
+                bottom: Val::Px(5.),
+                right: Val::Px(5.),
+                ..default()
+            },
+            ..default()
+        }),
+    );
+
     commands.spawn((
         PlayerEntity,
         PlayerAttached,

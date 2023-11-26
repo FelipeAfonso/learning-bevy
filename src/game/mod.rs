@@ -27,7 +27,8 @@ impl Plugin for GamePlugin {
         app.add_startup_system(init)
             .add_state::<GameState>()
             .add_system(detect_intersection_player)
-            .add_system(toggle_pause);
+            .add_system(toggle_pause)
+            .add_system(update_debug_text);
     }
 }
 
@@ -53,6 +54,18 @@ pub fn toggle_pause(
     }
 }
 
+pub fn update_debug_text(mut texts: Query<&mut Text>, state: Res<State<GameState>>) {
+    let state_str = match state.0 {
+        GameState::Pause => "Pause",
+        GameState::Active => "Active",
+        GameState::GameOver => "Game Over",
+        GameState::StartMenu => "Start Menu",
+    };
+    for mut text in &mut texts {
+        text.sections[0].value = ["State: ", state_str].join("").into();
+    }
+}
+
 pub fn detect_intersection_player(
     mut commands: Commands,
     enemy_query: Query<(&Transform, &Sprite, Entity), With<EnemyEntity>>,
@@ -61,6 +74,7 @@ pub fn detect_intersection_player(
         (With<PlayerEntity>, Without<PlayerAttached>),
     >,
     web_query: Query<(&Transform, &Sprite, Entity), (With<PlayerEntity>, With<PlayerAttached>)>,
+    mut state: ResMut<State<GameState>>,
 ) {
     for player in player_query.iter() {
         let player_pos = player.0.translation;
@@ -78,7 +92,7 @@ pub fn detect_intersection_player(
                     Some(Collision::Bottom) => {
                         commands.entity(player_entity).despawn();
                         commands.entity(web_entity).despawn();
-                        //TODO: toggle game over
+                        state.0 = GameState::GameOver;
                     }
                     Some(_collision) => {
                         commands.entity(enemy_entity).despawn();
@@ -90,7 +104,7 @@ pub fn detect_intersection_player(
                     Some(_collision) => {
                         commands.entity(web_entity).despawn();
                         commands.entity(player_entity).despawn();
-                        //TODO: toggle game over
+                        state.0 = GameState::GameOver;
                     }
                     _ => {}
                 };
