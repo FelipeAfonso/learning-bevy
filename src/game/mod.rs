@@ -30,6 +30,7 @@ impl Plugin for GamePlugin {
             .add_system(detect_intersection_player)
             .add_system(toggle_pause)
             .add_system(toggle_start)
+            .add_system(burn_energy)
             .add_system(update_debug_text);
     }
 }
@@ -40,6 +41,20 @@ fn init(mut commands: Commands, mut state: ResMut<State<GameState>>) {
         energy: 1.,
         score: 0,
     });
+}
+
+pub fn burn_energy(
+    mut game_state: ResMut<State<GameState>>,
+    mut game_resources: ResMut<GameResources>,
+    time: Res<Time>,
+) {
+    if game_state.0 == GameState::Active {
+        if game_resources.energy <= 0. {
+            game_state.0 = GameState::GameOver;
+        } else {
+            game_resources.energy -= time.delta_seconds() * 0.1;
+        }
+    }
 }
 
 pub fn toggle_pause(
@@ -65,14 +80,17 @@ pub fn toggle_start(
     mut keys: ResMut<Input<KeyCode>>,
     mut gamepad_events: EventReader<GamepadButtonChangedEvent>,
     mut state: ResMut<State<GameState>>,
+    mut game_resources: ResMut<GameResources>,
 ) {
     let start_button_pressed = gamepad_events
         .iter()
         .find(|e| e.button_type == GamepadButtonType::Start && e.value > 0.)
         .is_some();
     if !!keys.just_pressed(KeyCode::Escape) || start_button_pressed {
-        if state.0 == GameState::GameOver || state.0 == GameState::StartMenu {
+        if state.0 == GameState::StartMenu {
             state.0 = GameState::Init;
+            game_resources.score = 0;
+            game_resources.energy = 1.;
         }
         keys.reset(KeyCode::Escape);
     }
@@ -91,9 +109,11 @@ pub fn update_debug_text(
         GameState::Init => "Restarting",
     };
     let score: &str = &game_resources.score.to_string();
+    let energy: &str = &format!("{:.1}%", 100. * game_resources.energy).to_string();
     for mut text in &mut texts {
         text.sections[0].value = ["State: ", state_str, "\n"].join("").into();
-        text.sections[1].value = ["Score: ", score, "\n"].join("").into()
+        text.sections[1].value = ["Score: ", score, "\n"].join("").into();
+        text.sections[2].value = ["Energy: ", energy].join("").into();
     }
 }
 
@@ -129,6 +149,13 @@ pub fn detect_intersection_player(
                     Some(_collision) => {
                         commands.entity(enemy_entity).despawn();
                         game_resources.score += 1;
+                        game_resources.energy += match game_resources.energy {
+                            e if (0.0..0.3).contains(&e) => 0.3,
+                            e if (0.3..0.7).contains(&e) => 0.2,
+                            e if (0.7..0.9).contains(&e) => 0.1,
+                            e if (0.9..0.99).contains(&e) => 0.01,
+                            _ => 0.,
+                        }
                     }
                     _ => {}
                 };

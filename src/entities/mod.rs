@@ -150,6 +150,14 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     font: asset_server.load("fonts/geist.ttf"),
                 },
             ),
+            TextSection::new(
+                "Energy: 100%",
+                TextStyle {
+                    font_size: 20.,
+                    color: Color::WHITE,
+                    font: asset_server.load("fonts/geist.ttf"),
+                },
+            ),
         ])
         .with_style(Style {
             position_type: PositionType::Absolute,
