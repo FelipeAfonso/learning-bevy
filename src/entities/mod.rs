@@ -5,7 +5,12 @@ use crate::{
         SPRINGINT_SPEED,
     },
 };
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
+use bevy::{
+    audio::{PlaybackMode, Volume, VolumeLevel},
+    prelude::*,
+    sprite::MaterialMesh2dBundle,
+    window::PrimaryWindow,
+};
 use rand::Rng;
 use std::time::Duration;
 
@@ -30,12 +35,12 @@ struct EnemySpawner {
 pub struct EntitiesPlugin;
 impl Plugin for EntitiesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup)
-            .add_system(spawn_entities_on_init)
-            .add_system(move_player)
-            .add_system(spawn_enemies)
-            .add_system(move_enemies)
-            .add_system(despawn_game_entities_on_game_over);
+        app.add_systems(Startup, setup)
+            .add_systems(Update, spawn_entities_on_init)
+            .add_systems(Update, move_player)
+            .add_systems(Update, spawn_enemies)
+            .add_systems(Update, move_enemies)
+            .add_systems(Update, despawn_game_entities_on_game_over);
     }
 }
 
@@ -45,7 +50,7 @@ pub fn move_player(
     mut query: Query<&mut Transform, With<PlayerEntity>>,
     game_state: Res<State<GameState>>,
 ) {
-    if game_state.0 == GameState::Active {
+    if *game_state.get() == GameState::Active {
         let st = state.get_state();
         let speed: f32 = if state.is_boosting() {
             SPRINGINT_SPEED
@@ -61,14 +66,15 @@ pub fn move_player(
 
 fn despawn_game_entities_on_game_over(
     mut commands: Commands,
-    mut game_state: ResMut<State<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
     query: Query<Entity, With<GameEntity>>,
 ) {
-    if game_state.0 == GameState::GameOver {
+    if *game_state.get() == GameState::GameOver {
         for entity in query.iter() {
             commands.entity(entity).despawn();
         }
-        game_state.0 = GameState::StartMenu;
+        next_game_state.set(GameState::Init);
     }
 }
 
@@ -80,7 +86,7 @@ fn spawn_enemies(
     window_query: Query<&Window, With<PrimaryWindow>>,
     game_state: Res<State<GameState>>,
 ) {
-    if game_state.0 == GameState::Active {
+    if *game_state.get() == GameState::Active {
         config.timer.tick(time.delta());
         if config.timer.finished() {
             let mut rng = rand::thread_rng();
@@ -124,7 +130,7 @@ fn move_enemies(
     time: Res<Time>,
     game_state: Res<State<GameState>>,
 ) {
-    if game_state.0 == GameState::Active {
+    if *game_state.get() == GameState::Active {
         let movement: f32 = time.delta_seconds() * 64.;
         for mut enemy in &mut query {
             enemy.0.translation.x += if enemy.1.revert_direction {
@@ -169,15 +175,22 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ])
         .with_style(Style {
             position_type: PositionType::Absolute,
-            position: UiRect {
-                bottom: Val::Px(5.),
-                right: Val::Px(5.),
-                ..default()
-            },
+            bottom: Val::Px(5.),
+            right: Val::Px(5.),
             ..default()
         }),
     );
     commands.spawn(Camera2dBundle { ..default() });
+    commands.spawn(AudioBundle {
+        source: asset_server.load("sound/theme.ogg"),
+        settings: PlaybackSettings {
+            volume: Volume::Relative(VolumeLevel::new(1.)),
+            mode: PlaybackMode::Loop,
+            speed: 1.,
+            spatial: false,
+            paused: false,
+        },
+    });
 }
 
 pub fn spawn_entities_on_init(
@@ -186,9 +199,10 @@ pub fn spawn_entities_on_init(
     mut materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
     window_query: Query<&Window, With<PrimaryWindow>>,
-    mut game_state: ResMut<State<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
 ) {
-    if game_state.0 == GameState::Init {
+    if *game_state.get() == GameState::Init {
         let window = window_query.get_single().unwrap();
         let width = window.width();
         let height = window.height();
@@ -223,6 +237,7 @@ pub fn spawn_entities_on_init(
             SpriteBundle {
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(5.0, 1000.0)),
+                    color: Color::WHITE,
                     ..default()
                 },
                 transform: Transform {
@@ -233,6 +248,6 @@ pub fn spawn_entities_on_init(
             },
         ));
 
-        game_state.0 = GameState::Active
+        next_game_state.set(GameState::Active);
     }
 }

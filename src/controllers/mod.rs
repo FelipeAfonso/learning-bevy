@@ -20,7 +20,7 @@ impl PlayerControllerState {
             KeyCode::Down => self.y = 0.0,
             KeyCode::Left => self.x = 0.0,
             KeyCode::Right => self.x = 0.0,
-            KeyCode::LShift => self.boost = false,
+            KeyCode::ShiftLeft => self.boost = false,
             _ => (),
         }
     }
@@ -30,7 +30,7 @@ impl PlayerControllerState {
             KeyCode::Down => self.y = -1.0,
             KeyCode::Left => self.x = -1.0,
             KeyCode::Right => self.x = 1.0,
-            KeyCode::LShift => self.boost = true,
+            KeyCode::ShiftLeft => self.boost = true,
             _ => (),
         }
     }
@@ -67,7 +67,8 @@ impl PlayerControllerState {
 pub struct ControllersPlugin;
 impl Plugin for ControllersPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup).add_system(player_controller);
+        app.add_systems(Startup, setup)
+            .add_systems(Update, player_controller);
     }
 }
 
@@ -78,13 +79,13 @@ pub fn player_controller(
     mut state: ResMut<PlayerControllerState>,
 ) {
     use bevy::input::ButtonState;
-    for ev in joy_evr.iter() {
+    for ev in joy_evr.read() {
         state.move_player_joystick(ev.value, ev.axis_type)
     }
-    for ev in joy_b_evr.iter() {
+    for ev in joy_b_evr.read() {
         state.move_player_joystick_buttons(ev.value, ev.button_type)
     }
-    for ev in key_evr.iter() {
+    for ev in key_evr.read() {
         match ev.state {
             ButtonState::Pressed => state.move_player(ev.key_code.unwrap_or(KeyCode::Space)),
             ButtonState::Released => {

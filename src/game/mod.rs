@@ -43,18 +43,18 @@ pub struct GameResources {
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(init)
+        app.add_systems(Startup, init)
             .add_state::<GameState>()
-            .add_system(detect_intersection_player)
-            .add_system(toggle_pause)
-            .add_system(toggle_start)
-            .add_system(burn_energy)
-            .add_system(update_debug_text);
+            .add_systems(Update, detect_intersection_player)
+            .add_systems(Update, toggle_pause)
+            .add_systems(Update, toggle_start)
+            .add_systems(Update, burn_energy)
+            .add_systems(Update, update_debug_text);
     }
 }
 
-fn init(mut commands: Commands, mut state: ResMut<State<GameState>>) {
-    state.0 = GameState::StartMenu;
+fn init(mut commands: Commands, mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::StartMenu);
     commands.insert_resource(GameResources {
         energy: 1.,
         score: 0,
@@ -62,14 +62,15 @@ fn init(mut commands: Commands, mut state: ResMut<State<GameState>>) {
 }
 
 pub fn burn_energy(
-    mut game_state: ResMut<State<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
     mut game_resources: ResMut<GameResources>,
     controller_state: Res<PlayerControllerState>,
     time: Res<Time>,
 ) {
-    if game_state.0 == GameState::Active {
+    if *game_state.get() == GameState::Active {
         if game_resources.energy <= 0. {
-            game_state.0 = GameState::GameOver;
+            next_game_state.set(GameState::GameOver);
         } else if controller_state.is_moving() {
             game_resources.energy -= time.delta_seconds() * MOVING_ENERGY_BURNING_RATE;
         } else if controller_state.is_boosting() {
@@ -83,18 +84,19 @@ pub fn burn_energy(
 pub fn toggle_pause(
     mut keys: ResMut<Input<KeyCode>>,
     mut gamepad_events: EventReader<GamepadButtonChangedEvent>,
-    mut state: ResMut<State<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
 ) {
     let start_button_pressed = gamepad_events
-        .iter()
+        .read()
         .find(|e| e.button_type == GamepadButtonType::Start && e.value > 0.)
         .is_some();
     if !!keys.just_pressed(KeyCode::Escape) || start_button_pressed {
-        state.0 = match state.0 {
+        next_game_state.set(match *game_state.get() {
             GameState::Active => GameState::Pause,
             GameState::Pause => GameState::Active,
-            _ => state.0,
-        };
+            _ => *game_state.get(),
+        });
         keys.reset(KeyCode::Escape);
     }
 }
@@ -102,16 +104,17 @@ pub fn toggle_pause(
 pub fn toggle_start(
     mut keys: ResMut<Input<KeyCode>>,
     mut gamepad_events: EventReader<GamepadButtonChangedEvent>,
-    mut state: ResMut<State<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
     mut game_resources: ResMut<GameResources>,
 ) {
     let start_button_pressed = gamepad_events
-        .iter()
+        .read()
         .find(|e| e.button_type == GamepadButtonType::Start && e.value > 0.)
         .is_some();
-    if !!keys.just_pressed(KeyCode::Escape) || start_button_pressed {
-        if state.0 == GameState::StartMenu {
-            state.0 = GameState::Init;
+    if !!keys.just_pressed(KeyCode::Space) || start_button_pressed {
+        if *game_state.get() == GameState::StartMenu {
+            next_game_state.set(GameState::Init);
             game_resources.score = 0;
             game_resources.energy = 1.;
         }
@@ -121,10 +124,10 @@ pub fn toggle_start(
 
 pub fn update_debug_text(
     mut texts: Query<&mut Text>,
-    state: Res<State<GameState>>,
+    game_state: Res<State<GameState>>,
     game_resources: Res<GameResources>,
 ) {
-    let state_str = match state.0 {
+    let state_str = match *game_state.get() {
         GameState::Pause => "Pause",
         GameState::Active => "Active",
         GameState::GameOver => "Game Over",
@@ -148,7 +151,7 @@ pub fn detect_intersection_player(
         (With<PlayerEntity>, Without<PlayerAttached>),
     >,
     web_query: Query<(&Transform, &Sprite, Entity), (With<PlayerEntity>, With<PlayerAttached>)>,
-    mut game_state: ResMut<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
     mut game_resources: ResMut<GameResources>,
 ) {
     for player in player_query.iter() {
@@ -167,7 +170,7 @@ pub fn detect_intersection_player(
                     Some(Collision::Bottom) => {
                         commands.entity(player_entity).despawn();
                         commands.entity(web_entity).despawn();
-                        game_state.0 = GameState::GameOver;
+                        next_game_state.set(GameState::GameOver);
                     }
                     Some(_collision) => {
                         commands.entity(enemy_entity).despawn();
@@ -186,7 +189,7 @@ pub fn detect_intersection_player(
                     Some(_collision) => {
                         commands.entity(web_entity).despawn();
                         commands.entity(player_entity).despawn();
-                        game_state.0 = GameState::GameOver;
+                        next_game_state.set(GameState::GameOver);
                     }
                     _ => {}
                 };

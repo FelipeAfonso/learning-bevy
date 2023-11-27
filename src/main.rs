@@ -7,8 +7,8 @@ mod game;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugin(entities::EntitiesPlugin)
-        .add_plugin(controllers::ControllersPlugin)
-        .add_plugin(game::GamePlugin)
+        .add_plugins(entities::EntitiesPlugin)
+        .add_plugins(controllers::ControllersPlugin)
+        .add_plugins(game::GamePlugin)
         .run();
 }
