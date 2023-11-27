@@ -74,7 +74,7 @@ fn despawn_game_entities_on_game_over(
         for entity in query.iter() {
             commands.entity(entity).despawn();
         }
-        next_game_state.set(GameState::Init);
+        next_game_state.set(GameState::StartMenu);
     }
 }
 
@@ -115,7 +115,7 @@ fn spawn_enemies(
                     },
                     texture: asset_server.load("sprites/enemy-1.png"),
                     transform: Transform {
-                        translation: Vec3::from((x, y, 0.)),
+                        translation: Vec3::from((x, y, 2.)),
                         ..default()
                     },
                     ..default()
@@ -211,7 +211,11 @@ pub fn spawn_entities_on_init(
             Background,
             MaterialMesh2dBundle {
                 mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
-                transform: Transform::default().with_scale(Vec3::from([width, height, 1.])),
+                transform: Transform {
+                    scale: Vec3::from([width, height, 1.]),
+                    translation: Vec3::from((0., 0., 0.)),
+                    ..default()
+                },
                 material: materials.add(ColorMaterial::from(Color::MIDNIGHT_BLUE)),
                 ..default()
             },
@@ -226,6 +230,10 @@ pub fn spawn_entities_on_init(
                     ..default()
                 },
                 texture: asset_server.load("sprites/orange-spider.png"),
+                transform: Transform {
+                    translation: Vec3::from((0., 0., 10.)),
+                    ..default()
+                },
                 ..default()
             },
         ));
@@ -241,7 +249,7 @@ pub fn spawn_entities_on_init(
                     ..default()
                 },
                 transform: Transform {
-                    translation: Vec3::from((0., 500., 0.)),
+                    translation: Vec3::from((0., 500., 1.)),
                     ..default()
                 },
                 ..default()
