@@ -1,4 +1,10 @@
-use crate::{controllers::PlayerControllerState, game::GameState};
+use crate::{
+    controllers::PlayerControllerState,
+    game::{
+        GameState, ENEMY_SPRITE_HEIGHT, ENEMY_SPRITE_WIDTH, MOVE_SPEED, SCREEN_OFFSET, SPAWN_TIMER,
+        SPRINGINT_SPEED,
+    },
+};
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
 use rand::Rng;
 use std::time::Duration;
@@ -41,12 +47,14 @@ pub fn move_player(
 ) {
     if game_state.0 == GameState::Active {
         let st = state.get_state();
-        //println!(" -- x: {} -- y: {} --", st.0, st.1);
-        let speed: f32 = if state.is_boosting() { 256.0 } else { 128.0 };
+        let speed: f32 = if state.is_boosting() {
+            SPRINGINT_SPEED
+        } else {
+            MOVE_SPEED
+        };
         for mut player in &mut query {
             player.translation.x += st.0 * speed * time.delta_seconds();
             player.translation.y += st.1 * speed * time.delta_seconds();
-            println!("x: {}  y: {}", player.translation.x, player.translation.y)
         }
     }
 }
@@ -73,35 +81,35 @@ fn spawn_enemies(
     game_state: Res<State<GameState>>,
 ) {
     if game_state.0 == GameState::Active {
-        println!("spawning enemies");
         config.timer.tick(time.delta());
         if config.timer.finished() {
             let mut rng = rand::thread_rng();
             let window = window_query.get_single().unwrap();
-            let half_height = window.height() / 2.;
-            let half_width = window.width() / 2.;
+            println!("w: {} - h: {}", window.width(), window.height());
+            let height = window.height() - SCREEN_OFFSET.y;
+            let width = window.width() - SCREEN_OFFSET.x;
+            let half_height = height / 2.;
+            let half_width = width / 2.;
             let revert_direction = rand::random::<bool>();
-            let y: f32 = (rng.gen::<f32>() * window.height()) - half_height;
+            let y: f32 = (rng.gen::<f32>() * height) - half_height;
+            let x: f32 = if revert_direction {
+                half_width - SCREEN_OFFSET.x
+            } else {
+                (half_width * -1.) + SCREEN_OFFSET.x
+            };
+
             commands.spawn((
                 GameEntity,
                 EnemyEntity { revert_direction },
                 SpriteBundle {
                     sprite: Sprite {
-                        custom_size: Some(Vec2::new(30.0, 20.0)),
+                        custom_size: Some(Vec2::new(ENEMY_SPRITE_WIDTH, ENEMY_SPRITE_HEIGHT)),
                         flip_x: revert_direction,
                         ..default()
                     },
                     texture: asset_server.load("sprites/enemy-1.png"),
                     transform: Transform {
-                        translation: Vec3::from((
-                            if revert_direction {
-                                half_width
-                            } else {
-                                half_width * -1.
-                            },
-                            y,
-                            0.,
-                        )),
+                        translation: Vec3::from((x, y, 0.)),
                         ..default()
                     },
                     ..default()
@@ -130,7 +138,7 @@ fn move_enemies(
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(EnemySpawner {
-        timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
+        timer: Timer::new(Duration::from_secs_f32(SPAWN_TIMER), TimerMode::Repeating),
     });
     commands.spawn(
         TextBundle::from_sections([
@@ -181,7 +189,6 @@ pub fn spawn_entities_on_init(
     mut game_state: ResMut<State<GameState>>,
 ) {
     if game_state.0 == GameState::Init {
-        println!("spawning entities");
         let window = window_query.get_single().unwrap();
         let width = window.width();
         let height = window.height();

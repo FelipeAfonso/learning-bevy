@@ -56,6 +56,9 @@ impl PlayerControllerState {
     pub fn is_boosting(&self) -> bool {
         self.boost
     }
+    pub fn is_moving(&self) -> bool {
+        self.x != 0. || self.y != 0.
+    }
     pub fn get_state(&self) -> (f32, f32) {
         (self.x, self.y)
     }

@@ -1,10 +1,28 @@
+use crate::{
+    controllers::PlayerControllerState,
+    entities::{EnemyEntity, PlayerAttached, PlayerEntity},
+};
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
 };
-
-use crate::entities::{EnemyEntity, PlayerAttached, PlayerEntity};
+pub const IDLE_ENERGY_BURNING_RATE: f32 = 0.075;
+pub const MOVING_ENERGY_BURNING_RATE: f32 = 0.125;
+pub const SPRINTING_ENERGY_BURNING_RATE: f32 = 0.30;
+pub const SPRINGINT_SPEED: f32 = 256.0;
+pub const MOVE_SPEED: f32 = 128.0;
+pub const SPAWN_TIMER: f32 = 0.8;
+pub const ENEMY_SPRITE_HEIGHT: f32 = 20.;
+pub const ENEMY_SPRITE_WIDTH: f32 = 30.;
+pub struct ScreenOffset {
+    pub x: f32,
+    pub y: f32,
+}
+pub const SCREEN_OFFSET: ScreenOffset = ScreenOffset {
+    x: ENEMY_SPRITE_WIDTH * -1.,
+    y: ENEMY_SPRITE_HEIGHT + (ENEMY_SPRITE_HEIGHT * 0.5),
+};
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
@@ -46,13 +64,18 @@ fn init(mut commands: Commands, mut state: ResMut<State<GameState>>) {
 pub fn burn_energy(
     mut game_state: ResMut<State<GameState>>,
     mut game_resources: ResMut<GameResources>,
+    controller_state: Res<PlayerControllerState>,
     time: Res<Time>,
 ) {
     if game_state.0 == GameState::Active {
         if game_resources.energy <= 0. {
             game_state.0 = GameState::GameOver;
+        } else if controller_state.is_moving() {
+            game_resources.energy -= time.delta_seconds() * MOVING_ENERGY_BURNING_RATE;
+        } else if controller_state.is_boosting() {
+            game_resources.energy -= time.delta_seconds() * SPRINTING_ENERGY_BURNING_RATE;
         } else {
-            game_resources.energy -= time.delta_seconds() * 0.1;
+            game_resources.energy -= time.delta_seconds() * IDLE_ENERGY_BURNING_RATE;
         }
     }
 }
