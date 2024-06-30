@@ -4,6 +4,7 @@ use crate::{
 };
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
+    log,
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
 };
@@ -147,7 +148,7 @@ pub fn detect_intersection_player(
     mut commands: Commands,
     enemy_query: Query<(&Transform, &Sprite, Entity), With<EnemyEntity>>,
     player_query: Query<
-        (&Transform, &Sprite, Entity),
+        (&Transform, &TextureAtlasSprite, Entity),
         (With<PlayerEntity>, Without<PlayerAttached>),
     >,
     web_query: Query<(&Transform, &Sprite, Entity), (With<PlayerEntity>, With<PlayerAttached>)>,

@@ -31,13 +31,21 @@ pub struct Background;
 struct EnemySpawner {
     timer: Timer,
 }
+#[derive(Component)]
+pub struct AnimationIndices {
+    first: usize,
+    last: usize,
+}
 
+#[derive(Component, Deref, DerefMut)]
+pub struct AnimationTimer(Timer);
 pub struct EntitiesPlugin;
 impl Plugin for EntitiesPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
             .add_systems(Update, spawn_entities_on_init)
             .add_systems(Update, move_player)
+            .add_systems(Update, animate_sprite)
             .add_systems(Update, spawn_enemies)
             .add_systems(Update, move_enemies)
             .add_systems(Update, despawn_game_entities_on_game_over);
@@ -60,6 +68,26 @@ pub fn move_player(
         for mut player in &mut query {
             player.translation.x += st.0 * speed * time.delta_seconds();
             player.translation.y += st.1 * speed * time.delta_seconds();
+        }
+    }
+}
+
+pub fn animate_sprite(
+    time: Res<Time>,
+    mut query: Query<(
+        &AnimationIndices,
+        &mut AnimationTimer,
+        &mut TextureAtlasSprite,
+    )>,
+) {
+    for (indices, mut timer, mut sprite) in &mut query {
+        timer.tick(time.delta());
+        if timer.just_finished() {
+            sprite.index = if sprite.index == indices.last {
+                indices.first
+            } else {
+                sprite.index + 1
+            };
         }
     }
 }
@@ -201,6 +229,7 @@ pub fn spawn_entities_on_init(
     window_query: Query<&Window, With<PrimaryWindow>>,
     game_state: Res<State<GameState>>,
     mut next_game_state: ResMut<NextState<GameState>>,
+    mut texture_atlasses: ResMut<Assets<TextureAtlas>>,
 ) {
     if *game_state.get() == GameState::Init {
         let window = window_query.get_single().unwrap();
@@ -221,21 +250,32 @@ pub fn spawn_entities_on_init(
             },
         ));
 
+        let spider_atlas = TextureAtlas::from_grid(
+            asset_server.load("sprites/spooder.png"),
+            Vec2 { x: 32., y: 32. },
+            2,
+            1,
+            None,
+            None,
+        );
+        let spider_atlas_handle = texture_atlasses.add(spider_atlas);
+
+        let animation_indices = AnimationIndices { first: 0, last: 1 };
         commands.spawn((
             PlayerEntity,
             GameEntity,
-            SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(50.0, 50.0)),
-                    ..default()
-                },
-                texture: asset_server.load("sprites/orange-spider.png"),
-                transform: Transform {
-                    translation: Vec3::from((0., 0., 10.)),
+            SpriteSheetBundle {
+                texture_atlas: spider_atlas_handle,
+                transform: Transform::from_translation(Vec3::new(0., 0., 10.)),
+                sprite: TextureAtlasSprite {
+                    index: animation_indices.first,
+                    custom_size: Some(Vec2::splat(64.)),
                     ..default()
                 },
                 ..default()
             },
+            animation_indices,
+            AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating)),
         ));
 
         commands.spawn((
