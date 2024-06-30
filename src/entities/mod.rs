@@ -1,9 +1,6 @@
 use crate::{
     controllers::PlayerControllerState,
-    game::{
-        GameState, FLY_ENEMY_SPRITE_HEIGHT, FLY_ENEMY_SPRITE_WIDTH, MOVE_SPEED, SCREEN_OFFSET,
-        SPAWN_TIMER, SPRINGINT_SPEED,
-    },
+    game::{GameState, MOVE_SPEED, SCREEN_OFFSET, SPAWN_TIMER, SPRINGINT_SPEED},
 };
 use bevy::{
     audio::{PlaybackMode, Volume, VolumeLevel},
@@ -128,7 +125,6 @@ fn spawn_enemies(
         if config.timer.finished() {
             let mut rng = rand::thread_rng();
             let window = window_query.get_single().unwrap();
-            println!("w: {} - h: {}", window.width(), window.height());
             let height = window.height() - SCREEN_OFFSET.y;
             let width = window.width() - SCREEN_OFFSET.x;
             let half_height = height / 2.;
@@ -146,17 +142,30 @@ fn spawn_enemies(
                 false => EnemyType::MOSQUITO,
             };
 
+            let sprite = match enemy_type {
+                EnemyType::FLY => "sprites/fly.png",
+                EnemyType::MOSQUITO => "sprites/mosquito.png",
+            };
+            let size = match enemy_type {
+                EnemyType::FLY => Vec2 { x: 16., y: 16. },
+                EnemyType::MOSQUITO => Vec2 { x: 16., y: 10. },
+            };
+            let animation_indices = AnimationIndices { first: 0, last: 1 };
+            let animation_timer = match enemy_type {
+                EnemyType::FLY => AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating)),
+                EnemyType::MOSQUITO => {
+                    AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating))
+                }
+            };
             let enemy_atlas = TextureAtlas::from_grid(
-                asset_server.load("sprites/fly.png"),
-                Vec2 { x: 16., y: 16. },
+                asset_server.load(sprite),
+                size,
                 2,
                 1,
-                Some(Vec2 { x: 1., y: 1. }),
+                Some(Vec2::splat(1.)),
                 None,
             );
-            let spider_atlas_handle = texture_atlasses.add(enemy_atlas);
-
-            let animation_indices = AnimationIndices { first: 0, last: 1 };
+            let enemy_atlas_handle = texture_atlasses.add(enemy_atlas);
             commands.spawn((
                 GameEntity,
                 EnemyEntity {
@@ -164,21 +173,21 @@ fn spawn_enemies(
                     enemy_type,
                 },
                 SpriteSheetBundle {
-                    texture_atlas: spider_atlas_handle,
+                    texture_atlas: enemy_atlas_handle,
                     transform: Transform {
                         translation: Vec3::from((x, y, 2.)),
                         ..default()
                     },
                     sprite: TextureAtlasSprite {
                         index: animation_indices.first,
-                        custom_size: Some(Vec2::splat(32.)),
+                        custom_size: Some(size * 2.),
                         flip_x: revert_direction,
                         ..default()
                     },
                     ..default()
                 },
                 animation_indices,
-                AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating)),
+                animation_timer,
             ));
         }
     }
