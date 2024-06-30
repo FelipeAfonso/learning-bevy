@@ -1,6 +1,6 @@
 use crate::{
     controllers::PlayerControllerState,
-    game::{GameState, MOVE_SPEED, SCREEN_OFFSET, SPAWN_TIMER, SPRINGINT_SPEED},
+    game::{GameState, MOVE_SPEED, SPAWN_TIMER, SPRINGINT_SPEED},
 };
 use bevy::{
     audio::{PlaybackMode, Volume, VolumeLevel},
@@ -19,7 +19,7 @@ pub struct PlayerEntity;
 #[derive(Component)]
 pub struct PlayerAttached;
 
-enum EnemyType {
+pub enum EnemyType {
     FLY,
     MOSQUITO,
     // FROG,
@@ -27,7 +27,7 @@ enum EnemyType {
 #[derive(Component)]
 pub struct EnemyEntity {
     revert_direction: bool,
-    enemy_type: EnemyType,
+    pub enemy_type: EnemyType,
 }
 #[derive(Component)]
 pub struct Background;
@@ -125,38 +125,37 @@ fn spawn_enemies(
         if config.timer.finished() {
             let mut rng = rand::thread_rng();
             let window = window_query.get_single().unwrap();
-            let height = window.height() - SCREEN_OFFSET.y;
-            let width = window.width() - SCREEN_OFFSET.x;
-            let half_height = height / 2.;
-            let half_width = width / 2.;
-            let revert_direction = rand::random::<bool>();
-            let y: f32 = (rng.gen::<f32>() * height) - half_height;
-            let x: f32 = if revert_direction {
-                half_width - SCREEN_OFFSET.x
-            } else {
-                (half_width * -1.) + SCREEN_OFFSET.x
-            };
-
             let enemy_type = match rand::random::<bool>() {
                 true => EnemyType::FLY,
                 false => EnemyType::MOSQUITO,
-            };
-
-            let sprite = match enemy_type {
-                EnemyType::FLY => "sprites/fly.png",
-                EnemyType::MOSQUITO => "sprites/mosquito.png",
             };
             let size = match enemy_type {
                 EnemyType::FLY => Vec2 { x: 16., y: 16. },
                 EnemyType::MOSQUITO => Vec2 { x: 16., y: 10. },
             };
+            let sprite = match enemy_type {
+                EnemyType::FLY => "sprites/fly.png",
+                EnemyType::MOSQUITO => "sprites/mosquito.png",
+            };
             let animation_indices = AnimationIndices { first: 0, last: 1 };
             let animation_timer = match enemy_type {
                 EnemyType::FLY => AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating)),
                 EnemyType::MOSQUITO => {
-                    AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating))
+                    AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating))
                 }
             };
+            let height = window.height() - size.y;
+            let width = window.width() - size.x;
+            let half_height = height / 2.;
+            let half_width = width / 2.;
+            let revert_direction = rand::random::<bool>();
+            let y: f32 = (rng.gen::<f32>() * height) - half_height;
+            let x: f32 = if revert_direction {
+                half_width - size.x
+            } else {
+                (half_width * -1.) + size.x
+            };
+
             let enemy_atlas = TextureAtlas::from_grid(
                 asset_server.load(sprite),
                 size,
@@ -199,12 +198,24 @@ fn move_enemies(
     game_state: Res<State<GameState>>,
 ) {
     if *game_state.get() == GameState::Active {
-        let movement: f32 = time.delta_seconds() * 64.;
         for mut enemy in &mut query {
-            enemy.0.translation.x += if enemy.1.revert_direction {
-                movement * -1.
-            } else {
-                movement
+            match enemy.1.enemy_type {
+                EnemyType::FLY => {
+                    let movement: f32 = time.delta_seconds() * 64.;
+                    enemy.0.translation.x += if enemy.1.revert_direction {
+                        movement * -1.
+                    } else {
+                        movement
+                    }
+                }
+                EnemyType::MOSQUITO => {
+                    let movement: f32 = time.delta_seconds() * 256.;
+                    enemy.0.translation.x += if enemy.1.revert_direction {
+                        movement * -1.
+                    } else {
+                        movement
+                    }
+                }
             }
         }
     }

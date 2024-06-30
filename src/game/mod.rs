@@ -1,6 +1,6 @@
 use crate::{
     controllers::PlayerControllerState,
-    entities::{EnemyEntity, PlayerAttached, PlayerEntity},
+    entities::{EnemyEntity, EnemyType, PlayerAttached, PlayerEntity},
 };
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
@@ -13,16 +13,6 @@ pub const SPRINTING_ENERGY_BURNING_RATE: f32 = 0.30;
 pub const SPRINGINT_SPEED: f32 = 256.0;
 pub const MOVE_SPEED: f32 = 128.0;
 pub const SPAWN_TIMER: f32 = 0.8;
-pub const FLY_ENEMY_SPRITE_HEIGHT: f32 = 32.;
-pub const FLY_ENEMY_SPRITE_WIDTH: f32 = 32.;
-pub struct ScreenOffset {
-    pub x: f32,
-    pub y: f32,
-}
-pub const SCREEN_OFFSET: ScreenOffset = ScreenOffset {
-    x: FLY_ENEMY_SPRITE_WIDTH * -1.,
-    y: FLY_ENEMY_SPRITE_HEIGHT + (FLY_ENEMY_SPRITE_HEIGHT * 0.5),
-};
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
@@ -38,6 +28,7 @@ pub enum GameState {
 pub struct GameResources {
     energy: f32,
     score: u32,
+    time: f32,
 }
 
 pub struct GamePlugin;
@@ -48,6 +39,7 @@ impl Plugin for GamePlugin {
             .add_systems(Update, detect_intersection_player)
             .add_systems(Update, toggle_pause)
             .add_systems(Update, toggle_start)
+            .add_systems(Update, update_time)
             .add_systems(Update, burn_energy)
             .add_systems(Update, update_debug_text);
     }
@@ -58,7 +50,18 @@ fn init(mut commands: Commands, mut next_state: ResMut<NextState<GameState>>) {
     commands.insert_resource(GameResources {
         energy: 1.,
         score: 0,
+        time: 0.,
     });
+}
+
+fn update_time(
+    game_state: Res<State<GameState>>,
+    mut game_resources: ResMut<GameResources>,
+    time: Res<Time>,
+) {
+    if *game_state.get() == GameState::Active {
+        game_resources.time += time.delta_seconds()
+    }
 }
 
 pub fn burn_energy(
@@ -71,12 +74,14 @@ pub fn burn_energy(
     if *game_state.get() == GameState::Active {
         if game_resources.energy <= 0. {
             next_game_state.set(GameState::GameOver);
-        } else if controller_state.is_moving() {
-            game_resources.energy -= time.delta_seconds() * MOVING_ENERGY_BURNING_RATE;
-        } else if controller_state.is_boosting() {
-            game_resources.energy -= time.delta_seconds() * SPRINTING_ENERGY_BURNING_RATE;
-        } else {
-            game_resources.energy -= time.delta_seconds() * IDLE_ENERGY_BURNING_RATE;
+        } else if game_resources.time >= 5. {
+            if controller_state.is_moving() {
+                game_resources.energy -= time.delta_seconds() * MOVING_ENERGY_BURNING_RATE;
+            } else if controller_state.is_boosting() {
+                game_resources.energy -= time.delta_seconds() * SPRINTING_ENERGY_BURNING_RATE;
+            } else {
+                game_resources.energy -= time.delta_seconds() * IDLE_ENERGY_BURNING_RATE;
+            }
         }
     }
 }
@@ -145,7 +150,7 @@ pub fn update_debug_text(
 
 pub fn detect_intersection_player(
     mut commands: Commands,
-    enemy_query: Query<(&Transform, &TextureAtlasSprite, Entity), With<EnemyEntity>>,
+    enemy_query: Query<(&Transform, &TextureAtlasSprite, Entity, &EnemyEntity), With<EnemyEntity>>,
     player_query: Query<
         (&Transform, &TextureAtlasSprite, Entity),
         (With<PlayerEntity>, Without<PlayerAttached>),
@@ -174,25 +179,38 @@ pub fn detect_intersection_player(
                     }
                     Some(_collision) => {
                         commands.entity(enemy_entity).despawn();
-                        game_resources.score += 1;
-                        game_resources.energy += match game_resources.energy {
-                            e if (0.0..0.3).contains(&e) => 0.3,
-                            e if (0.3..0.7).contains(&e) => 0.2,
-                            e if (0.7..0.9).contains(&e) => 0.1,
-                            e if (0.9..0.99).contains(&e) => 0.01,
-                            _ => 0.,
+                        match enemy.3.enemy_type {
+                            EnemyType::FLY => {
+                                game_resources.score += 1;
+                                game_resources.energy += match game_resources.energy {
+                                    e if (0.0..0.3).contains(&e) => 0.3,
+                                    e if (0.3..0.7).contains(&e) => 0.2,
+                                    e if (0.7..0.9).contains(&e) => 0.1,
+                                    e if (0.9..0.99).contains(&e) => 0.01,
+                                    _ => 0.,
+                                }
+                            }
+                            EnemyType::MOSQUITO => {
+                                game_resources.score += 2;
+                                game_resources.energy = 1.;
+                            }
                         }
                     }
                     _ => {}
                 };
-                match collide(web_pos, web_size, enemy_pos, enemy_size) {
-                    Some(_collision) => {
-                        commands.entity(web_entity).despawn();
-                        commands.entity(player_entity).despawn();
-                        next_game_state.set(GameState::GameOver);
+                match enemy.3.enemy_type {
+                    EnemyType::MOSQUITO => {
+                        match collide(web_pos, web_size, enemy_pos, enemy_size) {
+                            Some(_collision) => {
+                                commands.entity(web_entity).despawn();
+                                commands.entity(player_entity).despawn();
+                                next_game_state.set(GameState::GameOver);
+                            }
+                            _ => {}
+                        }
                     }
                     _ => {}
-                };
+                }
             }
         }
     }
