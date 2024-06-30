@@ -121,6 +121,7 @@ pub fn toggle_start(
         if *game_state.get() == GameState::StartMenu {
             next_game_state.set(GameState::Init);
             game_resources.score = 0;
+            game_resources.time = 0.;
             game_resources.energy = 1.;
         }
         keys.reset(KeyCode::Escape);

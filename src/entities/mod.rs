@@ -79,20 +79,23 @@ pub fn move_player(
 
 pub fn animate_sprite(
     time: Res<Time>,
+    game_state: Res<State<GameState>>,
     mut query: Query<(
         &AnimationIndices,
         &mut AnimationTimer,
         &mut TextureAtlasSprite,
     )>,
 ) {
-    for (indices, mut timer, mut sprite) in &mut query {
-        timer.tick(time.delta());
-        if timer.just_finished() {
-            sprite.index = if sprite.index == indices.last {
-                indices.first
-            } else {
-                sprite.index + 1
-            };
+    if *game_state.get() == GameState::StartMenu {
+        for (indices, mut timer, mut sprite) in &mut query {
+            timer.tick(time.delta());
+            if timer.just_finished() {
+                sprite.index = if sprite.index == indices.last {
+                    indices.first
+                } else {
+                    sprite.index + 1
+                };
+            }
         }
     }
 }
