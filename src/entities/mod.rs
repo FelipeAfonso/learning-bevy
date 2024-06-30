@@ -1,8 +1,8 @@
 use crate::{
     controllers::PlayerControllerState,
     game::{
-        GameState, ENEMY_SPRITE_HEIGHT, ENEMY_SPRITE_WIDTH, MOVE_SPEED, SCREEN_OFFSET, SPAWN_TIMER,
-        SPRINGINT_SPEED,
+        GameState, FLY_ENEMY_SPRITE_HEIGHT, FLY_ENEMY_SPRITE_WIDTH, MOVE_SPEED, SCREEN_OFFSET,
+        SPAWN_TIMER, SPRINGINT_SPEED,
     },
 };
 use bevy::{
@@ -21,9 +21,16 @@ pub struct GameEntity;
 pub struct PlayerEntity;
 #[derive(Component)]
 pub struct PlayerAttached;
+
+enum EnemyType {
+    FLY,
+    MOSQUITO,
+    // FROG,
+}
 #[derive(Component)]
 pub struct EnemyEntity {
     revert_direction: bool,
+    enemy_type: EnemyType,
 }
 #[derive(Component)]
 pub struct Background;
@@ -114,6 +121,7 @@ fn spawn_enemies(
     asset_server: Res<AssetServer>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     game_state: Res<State<GameState>>,
+    mut texture_atlasses: ResMut<Assets<TextureAtlas>>,
 ) {
     if *game_state.get() == GameState::Active {
         config.timer.tick(time.delta());
@@ -133,22 +141,44 @@ fn spawn_enemies(
                 (half_width * -1.) + SCREEN_OFFSET.x
             };
 
+            let enemy_type = match rand::random::<bool>() {
+                true => EnemyType::FLY,
+                false => EnemyType::MOSQUITO,
+            };
+
+            let enemy_atlas = TextureAtlas::from_grid(
+                asset_server.load("sprites/fly.png"),
+                Vec2 { x: 16., y: 16. },
+                2,
+                1,
+                Some(Vec2 { x: 1., y: 1. }),
+                None,
+            );
+            let spider_atlas_handle = texture_atlasses.add(enemy_atlas);
+
+            let animation_indices = AnimationIndices { first: 0, last: 1 };
             commands.spawn((
                 GameEntity,
-                EnemyEntity { revert_direction },
-                SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(ENEMY_SPRITE_WIDTH, ENEMY_SPRITE_HEIGHT)),
-                        flip_x: revert_direction,
-                        ..default()
-                    },
-                    texture: asset_server.load("sprites/enemy-1.png"),
+                EnemyEntity {
+                    revert_direction,
+                    enemy_type,
+                },
+                SpriteSheetBundle {
+                    texture_atlas: spider_atlas_handle,
                     transform: Transform {
                         translation: Vec3::from((x, y, 2.)),
                         ..default()
                     },
+                    sprite: TextureAtlasSprite {
+                        index: animation_indices.first,
+                        custom_size: Some(Vec2::splat(32.)),
+                        flip_x: revert_direction,
+                        ..default()
+                    },
                     ..default()
                 },
+                animation_indices,
+                AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating)),
             ));
         }
     }

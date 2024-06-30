@@ -13,15 +13,15 @@ pub const SPRINTING_ENERGY_BURNING_RATE: f32 = 0.30;
 pub const SPRINGINT_SPEED: f32 = 256.0;
 pub const MOVE_SPEED: f32 = 128.0;
 pub const SPAWN_TIMER: f32 = 0.8;
-pub const ENEMY_SPRITE_HEIGHT: f32 = 20.;
-pub const ENEMY_SPRITE_WIDTH: f32 = 30.;
+pub const FLY_ENEMY_SPRITE_HEIGHT: f32 = 32.;
+pub const FLY_ENEMY_SPRITE_WIDTH: f32 = 32.;
 pub struct ScreenOffset {
     pub x: f32,
     pub y: f32,
 }
 pub const SCREEN_OFFSET: ScreenOffset = ScreenOffset {
-    x: ENEMY_SPRITE_WIDTH * -1.,
-    y: ENEMY_SPRITE_HEIGHT + (ENEMY_SPRITE_HEIGHT * 0.5),
+    x: FLY_ENEMY_SPRITE_WIDTH * -1.,
+    y: FLY_ENEMY_SPRITE_HEIGHT + (FLY_ENEMY_SPRITE_HEIGHT * 0.5),
 };
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -145,7 +145,7 @@ pub fn update_debug_text(
 
 pub fn detect_intersection_player(
     mut commands: Commands,
-    enemy_query: Query<(&Transform, &Sprite, Entity), With<EnemyEntity>>,
+    enemy_query: Query<(&Transform, &TextureAtlasSprite, Entity), With<EnemyEntity>>,
     player_query: Query<
         (&Transform, &TextureAtlasSprite, Entity),
         (With<PlayerEntity>, Without<PlayerAttached>),
