@@ -8,6 +8,7 @@ use crate::{
 use bevy::{
     audio::{PlaybackMode, Volume, VolumeLevel},
     prelude::*,
+    render::camera::ScalingMode,
     sprite::MaterialMesh2dBundle,
     window::PrimaryWindow,
 };
@@ -208,7 +209,18 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         }),
     );
-    commands.spawn(Camera2dBundle { ..default() });
+    commands.spawn(Camera2dBundle {
+        projection: OrthographicProjection {
+            scaling_mode: ScalingMode::Fixed {
+                width: 1280.,
+                height: 720.,
+            },
+            far: 1000.,
+            near: -1000.,
+            ..default()
+        },
+        ..default()
+    });
     commands.spawn(AudioBundle {
         source: asset_server.load("sound/theme.ogg"),
         settings: PlaybackSettings {

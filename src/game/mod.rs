@@ -4,7 +4,6 @@ use crate::{
 };
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
-    log,
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
 };
