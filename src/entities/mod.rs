@@ -50,6 +50,7 @@ impl Plugin for EntitiesPlugin {
         app.add_systems(Startup, setup)
             .add_systems(Update, spawn_entities_on_init)
             .add_systems(Update, move_player)
+            .add_systems(Update, move_web)
             .add_systems(Update, animate_sprite)
             .add_systems(Update, spawn_enemies)
             .add_systems(Update, move_enemies)
@@ -57,10 +58,21 @@ impl Plugin for EntitiesPlugin {
     }
 }
 
+pub fn move_web(
+    mut query: Query<&mut Transform, With<PlayerAttached>>,
+    player_query: Query<&mut Transform, (With<PlayerEntity>, Without<PlayerAttached>)>,
+) {
+    for player in &mut player_query.iter() {
+        for mut web in &mut query {
+            web.translation.x = player.translation.x;
+            web.translation.y = player.translation.y + 500.;
+        }
+    }
+}
 pub fn move_player(
     time: Res<Time>,
     state: Res<PlayerControllerState>,
-    mut query: Query<&mut Transform, With<PlayerEntity>>,
+    mut query: Query<&mut Transform, (With<PlayerEntity>, Without<PlayerAttached>)>,
     game_state: Res<State<GameState>>,
 ) {
     if *game_state.get() == GameState::Active {
@@ -71,8 +83,27 @@ pub fn move_player(
             MOVE_SPEED
         };
         for mut player in &mut query {
-            player.translation.x += st.0 * speed * time.delta_seconds();
-            player.translation.y += st.1 * speed * time.delta_seconds();
+            println!(
+                "x: {:?} y: {:?}",
+                player.translation.x, player.translation.y
+            );
+            // check for collisions on x axis
+            if player.translation.x < -618. {
+                player.translation.x = -618.;
+            } else if player.translation.x > 618. {
+                player.translation.x = 618.;
+            } else {
+                player.translation.x += st.0 * speed * time.delta_seconds();
+            }
+
+            // check on the y axis
+            if player.translation.y < -328. {
+                player.translation.y = -328.;
+            } else if player.translation.y > 328. {
+                player.translation.y = 328.;
+            } else {
+                player.translation.y += st.1 * speed * time.delta_seconds();
+            }
         }
     }
 }
@@ -349,7 +380,7 @@ pub fn spawn_entities_on_init(
             PlayerAttached,
             SpriteBundle {
                 sprite: Sprite {
-                    custom_size: Some(Vec2::new(5.0, 1000.0)),
+                    custom_size: Some(Vec2::new(3.0, 1000.0)),
                     color: Color::WHITE,
                     ..default()
                 },
