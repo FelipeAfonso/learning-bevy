@@ -5,7 +5,7 @@ use crate::{
 use bevy::{
     audio::{PlaybackMode, Volume, VolumeLevel},
     prelude::*,
-    render::camera::ScalingMode,
+    render::{camera::ScalingMode, render_resource::Texture},
     sprite::MaterialMesh2dBundle,
     window::PrimaryWindow,
 };
@@ -324,29 +324,21 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 pub fn spawn_entities_on_init(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
     game_state: Res<State<GameState>>,
     mut next_game_state: ResMut<NextState<GameState>>,
     mut texture_atlasses: ResMut<Assets<TextureAtlas>>,
 ) {
     if *game_state.get() == GameState::Init {
-        let window = window_query.get_single().unwrap();
-        let width = window.width();
-        let height = window.height();
-
         commands.spawn((
             Background,
-            MaterialMesh2dBundle {
-                mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
+            SpriteBundle {
+                texture: asset_server.load("sprites/bgblur.png"),
                 transform: Transform {
-                    scale: Vec3::from([width, height, 1.]),
                     translation: Vec3::from((0., 0., 0.)),
+                    scale: Vec3::from((2., 2., 1.)),
                     ..default()
                 },
-                material: materials.add(ColorMaterial::from(Color::MIDNIGHT_BLUE)),
                 ..default()
             },
         ));
