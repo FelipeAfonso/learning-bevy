@@ -28,6 +28,7 @@ pub enum EnemyType {
 pub struct EnemyEntity {
     revert_direction: bool,
     pub enemy_type: EnemyType,
+    timer: f32,
 }
 #[derive(Component)]
 pub struct Background;
@@ -117,7 +118,7 @@ pub fn animate_sprite(
         &mut TextureAtlasSprite,
     )>,
 ) {
-    if *game_state.get() == GameState::StartMenu {
+    if *game_state.get() == GameState::Active {
         for (indices, mut timer, mut sprite) in &mut query {
             timer.tick(time.delta());
             if timer.just_finished() {
@@ -204,6 +205,7 @@ fn spawn_enemies(
                 EnemyEntity {
                     revert_direction,
                     enemy_type,
+                    timer: 0.,
                 },
                 SpriteSheetBundle {
                     texture_atlas: enemy_atlas_handle,
@@ -227,12 +229,13 @@ fn spawn_enemies(
 }
 
 fn move_enemies(
-    mut query: Query<(&mut Transform, &EnemyEntity)>,
+    mut query: Query<(&mut Transform, &mut EnemyEntity)>,
     time: Res<Time>,
     game_state: Res<State<GameState>>,
 ) {
     if *game_state.get() == GameState::Active {
         for mut enemy in &mut query {
+            enemy.1.timer += time.delta_seconds();
             match enemy.1.enemy_type {
                 EnemyType::FLY => {
                     let movement: f32 = time.delta_seconds() * 64.;
@@ -240,7 +243,9 @@ fn move_enemies(
                         movement * -1.
                     } else {
                         movement
-                    }
+                    };
+                    // vertical oscillation
+                    enemy.0.translation.y += movement * (enemy.1.timer * 3.).sin();
                 }
                 EnemyType::MOSQUITO => {
                     let movement: f32 = time.delta_seconds() * 256.;
