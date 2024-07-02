@@ -4,5 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.12.0"
+bevy = { version = "0.12.0", features = ["wayland"] }
 rand = "0.8.5"
+
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
+
