@@ -26,8 +26,8 @@ pub enum GameState {
 
 #[derive(Resource)]
 pub struct GameResources {
-    energy: f32,
-    score: u32,
+    pub energy: f32,
+    pub score: u32,
     time: f32,
 }
 

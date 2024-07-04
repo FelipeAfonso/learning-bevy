@@ -5,8 +5,7 @@ use crate::{
 use bevy::{
     audio::{PlaybackMode, Volume, VolumeLevel},
     prelude::*,
-    render::{camera::ScalingMode, render_resource::Texture},
-    sprite::MaterialMesh2dBundle,
+    render::camera::ScalingMode,
     window::PrimaryWindow,
 };
 use rand::Rng;

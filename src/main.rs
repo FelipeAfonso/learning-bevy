@@ -3,6 +3,7 @@ use bevy::prelude::*;
 mod controllers;
 mod entities;
 mod game;
+mod ui;
 
 fn main() {
     App::new()
@@ -20,5 +21,6 @@ fn main() {
         .add_plugins(entities::EntitiesPlugin)
         .add_plugins(controllers::ControllersPlugin)
         .add_plugins(game::GamePlugin)
+        .add_plugins(ui::UIPlugin)
         .run();
 }
