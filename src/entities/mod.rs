@@ -310,7 +310,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     });
     commands.spawn(AudioBundle {
-        source: asset_server.load("sound/theme.ogg"),
+        source: asset_server.load("sound/theme.mp3"),
         settings: PlaybackSettings {
             volume: Volume::Relative(VolumeLevel::new(1.)),
             mode: PlaybackMode::Loop,
