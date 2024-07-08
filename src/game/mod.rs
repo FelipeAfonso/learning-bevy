@@ -3,7 +3,7 @@ use crate::{
     entities::{EnemyEntity, EnemyType, PlayerAttached, PlayerEntity},
 };
 use bevy::{
-    input::{gamepad::GamepadButtonChangedEvent, mouse::MouseButtonInput},
+    input::gamepad::GamepadButtonChangedEvent,
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
 };
@@ -108,7 +108,7 @@ pub fn toggle_pause(
 
 pub fn toggle_start(
     mut keys: ResMut<Input<KeyCode>>,
-    mut click_events: EventReader<MouseButtonInput>,
+    // mut click_events: EventReader<MouseButtonInput>,
     mut gamepad_events: EventReader<GamepadButtonChangedEvent>,
     game_state: Res<State<GameState>>,
     mut next_game_state: ResMut<NextState<GameState>>,
@@ -118,8 +118,8 @@ pub fn toggle_start(
         .read()
         .find(|e| e.button_type == GamepadButtonType::Start && e.value > 0.)
         .is_some();
-    let clicked = click_events.read().next().is_some();
-    if !!keys.just_pressed(KeyCode::Space) || start_button_pressed || clicked {
+    // let clicked = click_events.read().next().is_some();
+    if !!keys.just_pressed(KeyCode::Space) || start_button_pressed {
         if *game_state.get() == GameState::StartMenu {
             next_game_state.set(GameState::Init);
             game_resources.score = 0;

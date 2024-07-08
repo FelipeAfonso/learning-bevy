@@ -5,11 +5,14 @@ use bevy::{
     asset::{AssetServer, Assets},
     audio::{AudioBundle, AudioSourceBundle, PlaybackMode, PlaybackSettings, Volume, VolumeLevel},
     math::{Vec2, Vec3},
-    prelude::{Commands, Component, Deref, DerefMut, Entity, Query, Res, ResMut, State, With},
+    prelude::{
+        default, Commands, Component, Deref, DerefMut, Entity, Query, Res, ResMut, State, With,
+    },
     render::view::Visibility,
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    sprite::{collide_aabb::collide, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
     time::{Time, Timer, TimerMode},
     transform::components::Transform,
+    window::{PrimaryWindow, Window},
 };
 
 use crate::{
@@ -27,6 +30,8 @@ pub struct EnergyBarFire;
 pub struct EnergyBar;
 #[derive(Component, Deref, DerefMut)]
 pub struct AnimationTimer(Timer);
+#[derive(Component)]
+pub struct StartMenuUI;
 
 pub struct UIPlugin;
 impl Plugin for UIPlugin {
@@ -34,6 +39,8 @@ impl Plugin for UIPlugin {
         app.add_systems(Update, spawn_ui_on_init)
             .add_systems(Update, update_energy_bar)
             .add_systems(Update, manage_songs)
+            .add_systems(Update, animate_ui_buttons_on_hover)
+            .add_systems(Update, show_start_menu_ui)
             .add_systems(Update, update_energy_bar_fire);
     }
 }
@@ -131,6 +138,74 @@ pub fn manage_songs(
     }
 }
 
+pub fn animate_ui_buttons_on_hover(
+    mut interaction_query: Query<(&mut TextureAtlasSprite, &Transform), With<StartMenuUI>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    let window = window_query.get_single().unwrap();
+    match window.cursor_position() {
+        Some(cursor_pos) => {
+            for (mut sprite, transform) in &mut interaction_query {
+                let cursor_pos = Vec3::from_array([cursor_pos[0], cursor_pos[1], 0.]);
+                let cursor_size = Vec2::splat(1.);
+                let el_pos = Vec3::from_array(transform.translation.into());
+                let el_size = Vec2::from_array(sprite.custom_size.unwrap().into());
+                let screen_center =
+                    Vec3::from_array([window.width() / 2., window.height() / 2., 0.]);
+                let normalized_el_pos = screen_center - el_pos;
+                let final_el_pos =
+                    Vec3::from_array([normalized_el_pos[0], normalized_el_pos[1], 0.]);
+                match collide(cursor_pos, cursor_size, final_el_pos, el_size) {
+                    Some(_col) => {
+                        sprite.index = 1;
+                    }
+                    _ => {
+                        sprite.index = 0;
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+pub fn show_start_menu_ui(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    game_state: Res<State<GameState>>,
+    mut texture_atlasses: ResMut<Assets<TextureAtlas>>,
+    query: Query<Entity, With<StartMenuUI>>,
+) {
+    if *game_state.get() == GameState::StartMenu {
+        let play_button_atlas = TextureAtlas::from_grid(
+            asset_server.load("sprites/play-button.png"),
+            Vec2 { x: 28., y: 17. },
+            1,
+            2,
+            None,
+            None,
+        );
+        let play_button_atlas_handle = texture_atlasses.add(play_button_atlas);
+        commands.spawn((
+            StartMenuUI,
+            SpriteSheetBundle {
+                texture_atlas: play_button_atlas_handle,
+                transform: Transform::from_translation(Vec3::new(0., -260., 15.)),
+                sprite: TextureAtlasSprite {
+                    index: 0,
+                    custom_size: Some(Vec2::from([224., 136.])),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+    } else {
+        for entity in &query {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
 pub fn spawn_ui_on_init(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -159,12 +234,11 @@ pub fn spawn_ui_on_init(
                 sprite: TextureAtlasSprite {
                     index: 0,
                     custom_size: Some(Vec2::mul(energy_bar_sprite_size, scale_f)),
-                    ..Default::default()
+                    ..default()
                 },
-                ..Default::default()
+                ..default()
             },
         ));
-
         let fire_sprite_size = Vec2 { x: 69., y: 27. };
         let fire_atlas = TextureAtlas::from_grid(
             asset_server.load("sprites/energy-bar-fire.png"),
@@ -181,14 +255,14 @@ pub fn spawn_ui_on_init(
             AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
             SpriteSheetBundle {
                 texture_atlas: fire_atlas_handle,
-                transform: Transform::from_translation(Vec3::new(-4., -260., 12.)),
                 visibility: Visibility::Hidden,
+                transform: Transform::from_translation(Vec3::new(-4., -260., 12.)),
                 sprite: TextureAtlasSprite {
                     index: 0,
                     custom_size: Some(Vec2::mul(fire_sprite_size, scale_f)),
-                    ..Default::default()
+                    ..default()
                 },
-                ..Default::default()
+                ..default()
             },
         ));
     }
