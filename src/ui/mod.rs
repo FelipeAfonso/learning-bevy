@@ -3,8 +3,9 @@ use std::ops::Mul;
 use bevy::{
     app::{App, Plugin, Update},
     asset::{AssetServer, Assets},
+    audio::{AudioBundle, AudioSourceBundle, PlaybackMode, PlaybackSettings, Volume, VolumeLevel},
     math::{Vec2, Vec3},
-    prelude::{Commands, Component, Deref, DerefMut, Query, Res, ResMut, State, With},
+    prelude::{Commands, Component, Deref, DerefMut, Entity, Query, Res, ResMut, State, With},
     render::view::Visibility,
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
     time::{Time, Timer, TimerMode},
@@ -17,6 +18,10 @@ use crate::{
 };
 
 #[derive(Component)]
+pub struct Song {
+    title: String,
+}
+#[derive(Component)]
 pub struct EnergyBarFire;
 #[derive(Component)]
 pub struct EnergyBar;
@@ -28,6 +33,7 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, spawn_ui_on_init)
             .add_systems(Update, update_energy_bar)
+            .add_systems(Update, manage_songs)
             .add_systems(Update, update_energy_bar_fire);
     }
 }
@@ -76,6 +82,52 @@ pub fn update_energy_bar(
             _ => 0,
         };
         energy_bar.index = index;
+    }
+}
+
+fn new_song_tuple(name: &str, asset_server: &Res<AssetServer>) -> (Song, AudioSourceBundle) {
+    (
+        Song {
+            title: String::from(name),
+        },
+        AudioBundle {
+            source: asset_server.load(format!("sound/{}.mp3", &name)),
+            settings: PlaybackSettings {
+                volume: Volume::Relative(VolumeLevel::new(if name == "theme" { 1. } else { 0.7 })),
+                mode: PlaybackMode::Loop,
+                speed: 1.,
+                spatial: false,
+                paused: false,
+            },
+        },
+    )
+}
+
+pub fn manage_songs(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    game_state: Res<State<GameState>>,
+    mut query: Query<(Entity, &Song)>,
+) {
+    let state = *game_state.get();
+    if query.is_empty() && state == GameState::StartMenu {
+        commands.spawn(new_song_tuple("theme", &asset_server));
+    }
+    for (entity, song) in &mut query {
+        match state {
+            GameState::StartMenu => {
+                if song.title != String::from("theme") {
+                    commands.entity(entity).despawn();
+                    commands.spawn(new_song_tuple("theme", &asset_server));
+                }
+            }
+            _ => {
+                if song.title != String::from("in_the_jungle") {
+                    commands.entity(entity).despawn();
+                    commands.spawn(new_song_tuple("in_the_jungle", &asset_server));
+                }
+            }
+        }
     }
 }
 
