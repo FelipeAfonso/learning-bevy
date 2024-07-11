@@ -1,5 +1,7 @@
-use std::ops::Mul;
-
+use crate::{
+    controllers::PlayerControllerState,
+    game::{GameResources, GameState},
+};
 use bevy::{
     app::{App, Plugin, Update},
     asset::{AssetServer, Assets},
@@ -16,12 +18,7 @@ use bevy::{
     transform::components::Transform,
     window::{PrimaryWindow, Window},
 };
-
-use crate::{
-    controllers::PlayerControllerState,
-    game::{GameResources, GameState},
-};
-
+use std::ops::Mul;
 #[derive(Component)]
 pub struct Song {
     title: String,

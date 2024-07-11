@@ -5,7 +5,6 @@ use bevy::{
     },
     prelude::*,
 };
-
 #[derive(Resource)]
 pub struct PlayerControllerState {
     x: f32,

@@ -5,14 +5,12 @@ use crate::{
 use bevy::{prelude::*, render::camera::ScalingMode, window::PrimaryWindow};
 use rand::Rng;
 use std::time::Duration;
-
 #[derive(Component)]
 pub struct GameEntity;
 #[derive(Component)]
 pub struct PlayerEntity;
 #[derive(Component)]
 pub struct PlayerAttached;
-
 pub enum EnemyType {
     FLY,
     MOSQUITO,
@@ -26,7 +24,6 @@ pub struct EnemyEntity {
 }
 #[derive(Component)]
 pub struct Background;
-
 #[derive(Resource)]
 struct EnemySpawner {
     timer: Timer,
@@ -36,10 +33,10 @@ pub struct AnimationIndices {
     first: usize,
     last: usize,
 }
-
 #[derive(Component, Deref, DerefMut)]
 pub struct AnimationTimer(Timer);
 pub struct EntitiesPlugin;
+
 impl Plugin for EntitiesPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
@@ -64,6 +61,7 @@ pub fn move_web(
         }
     }
 }
+
 pub fn move_player(
     time: Res<Time>,
     state: Res<PlayerControllerState>,
@@ -90,7 +88,6 @@ pub fn move_player(
             } else {
                 player.translation.x += st.0 * speed * time.delta_seconds();
             }
-
             // check on the y axis
             if player.translation.y < -328. {
                 player.translation.y = -328.;
@@ -326,7 +323,6 @@ pub fn spawn_entities_on_init(
                 ..default()
             },
         ));
-
         let spider_atlas = TextureAtlas::from_grid(
             asset_server.load("sprites/spooder.png"),
             Vec2 { x: 32., y: 32. },
@@ -336,7 +332,6 @@ pub fn spawn_entities_on_init(
             None,
         );
         let spider_atlas_handle = texture_atlasses.add(spider_atlas);
-
         let animation_indices = AnimationIndices { first: 0, last: 1 };
         commands.spawn((
             PlayerEntity,
@@ -354,7 +349,6 @@ pub fn spawn_entities_on_init(
             animation_indices,
             AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating)),
         ));
-
         commands.spawn((
             PlayerEntity,
             GameEntity,
@@ -372,7 +366,6 @@ pub fn spawn_entities_on_init(
                 ..default()
             },
         ));
-
         next_game_state.set(GameState::Active);
     }
 }

@@ -13,7 +13,6 @@ pub const SPRINTING_ENERGY_BURNING_RATE: f32 = 0.30;
 pub const SPRINGINT_SPEED: f32 = 256.0;
 pub const MOVE_SPEED: f32 = 128.0;
 pub const SPAWN_TIMER: f32 = 0.8;
-
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
     #[default]
@@ -23,15 +22,14 @@ pub enum GameState {
     Pause,
     Init,
 }
-
 #[derive(Resource)]
 pub struct GameResources {
     pub energy: f32,
     pub score: u32,
     pub time: f32,
 }
-
 pub struct GamePlugin;
+
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init)
