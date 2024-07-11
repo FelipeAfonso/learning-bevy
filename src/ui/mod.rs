@@ -4,9 +4,11 @@ use bevy::{
     app::{App, Plugin, Update},
     asset::{AssetServer, Assets},
     audio::{AudioBundle, AudioSourceBundle, PlaybackMode, PlaybackSettings, Volume, VolumeLevel},
+    input::mouse::MouseButtonInput,
     math::{Vec2, Vec3},
     prelude::{
-        default, Commands, Component, Deref, DerefMut, Entity, Query, Res, ResMut, State, With,
+        default, Commands, Component, Deref, DerefMut, Entity, EventReader, NextState, Query, Res,
+        ResMut, State, With,
     },
     render::view::Visibility,
     sprite::{collide_aabb::collide, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
@@ -39,7 +41,7 @@ impl Plugin for UIPlugin {
         app.add_systems(Update, spawn_ui_on_init)
             .add_systems(Update, update_energy_bar)
             .add_systems(Update, manage_songs)
-            .add_systems(Update, animate_ui_buttons_on_hover)
+            .add_systems(Update, manage_start_button)
             .add_systems(Update, show_start_menu_ui)
             .add_systems(Update, update_energy_bar_fire);
     }
@@ -138,9 +140,13 @@ pub fn manage_songs(
     }
 }
 
-pub fn animate_ui_buttons_on_hover(
+pub fn manage_start_button(
     mut interaction_query: Query<(&mut TextureAtlasSprite, &Transform), With<StartMenuUI>>,
     window_query: Query<&Window, With<PrimaryWindow>>,
+    mut click_events: EventReader<MouseButtonInput>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+    mut game_resources: ResMut<GameResources>,
 ) {
     let window = window_query.get_single().unwrap();
     match window.cursor_position() {
@@ -149,7 +155,8 @@ pub fn animate_ui_buttons_on_hover(
                 let cursor_pos = Vec3::from_array([cursor_pos[0], cursor_pos[1], 0.]);
                 let cursor_size = Vec2::splat(1.);
                 let el_pos = Vec3::from_array(transform.translation.into());
-                let el_size = Vec2::from_array(sprite.custom_size.unwrap().into());
+                let spr_copy = sprite.clone();
+                let el_size = Vec2::from_array(spr_copy.custom_size.unwrap().into());
                 let screen_center =
                     Vec3::from_array([window.width() / 2., window.height() / 2., 0.]);
                 let normalized_el_pos = screen_center - el_pos;
@@ -158,6 +165,14 @@ pub fn animate_ui_buttons_on_hover(
                 match collide(cursor_pos, cursor_size, final_el_pos, el_size) {
                     Some(_col) => {
                         sprite.index = 1;
+                        if click_events.read().next().is_some() {
+                            if *game_state.get() == GameState::StartMenu {
+                                next_game_state.set(GameState::Init);
+                                game_resources.score = 0;
+                                game_resources.time = 0.;
+                                game_resources.energy = 1.;
+                            }
+                        }
                     }
                     _ => {
                         sprite.index = 0;
@@ -177,6 +192,9 @@ pub fn show_start_menu_ui(
     query: Query<Entity, With<StartMenuUI>>,
 ) {
     if *game_state.get() == GameState::StartMenu {
+        if !query.is_empty() {
+            return;
+        }
         let play_button_atlas = TextureAtlas::from_grid(
             asset_server.load("sprites/play-button.png"),
             Vec2 { x: 28., y: 17. },

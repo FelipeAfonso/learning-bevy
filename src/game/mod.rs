@@ -28,7 +28,7 @@ pub enum GameState {
 pub struct GameResources {
     pub energy: f32,
     pub score: u32,
-    time: f32,
+    pub time: f32,
 }
 
 pub struct GamePlugin;
