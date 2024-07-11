@@ -56,22 +56,31 @@ pub fn update_energy_bar_fire(
         ),
         With<EnergyBarFire>,
     >,
-    state: Res<PlayerControllerState>,
+    controller_state: Res<PlayerControllerState>,
     time: Res<Time>,
+    game_state: Res<State<GameState>>,
 ) {
+    let state = *game_state.get();
     for (mut sprite, mut visibility, mut timer) in &mut query {
-        *visibility = Visibility::Visible;
-        if state.is_boosting() {
-            timer.tick(time.delta());
-            if timer.just_finished() {
-                sprite.index = if sprite.index == 3 {
-                    0
-                } else {
-                    sprite.index + 1
-                };
+        match state {
+            GameState::StartMenu | GameState::GameOver => {
+                *visibility = Visibility::Hidden;
             }
-        } else {
-            *visibility = Visibility::Hidden;
+            _ => {
+                *visibility = Visibility::Visible;
+                if controller_state.is_boosting() {
+                    timer.tick(time.delta());
+                    if timer.just_finished() {
+                        sprite.index = if sprite.index == 3 {
+                            0
+                        } else {
+                            sprite.index + 1
+                        };
+                    }
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
         }
     }
 }
