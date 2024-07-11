@@ -76,10 +76,6 @@ pub fn move_player(
             MOVE_SPEED
         };
         for mut player in &mut query {
-            println!(
-                "x: {:?} y: {:?}",
-                player.translation.x, player.translation.y
-            );
             // check for collisions on x axis
             if player.translation.x < -618. {
                 player.translation.x = -618.;
