@@ -34,6 +34,13 @@ pub struct EnergyBar;
 pub struct AnimationTimer(Timer);
 #[derive(Component)]
 pub struct StartMenuUI;
+#[derive(Component)]
+pub struct StartButton;
+#[derive(Component)]
+pub struct AnimationIndices {
+    first: usize,
+    last: usize,
+}
 
 pub struct UIPlugin;
 impl Plugin for UIPlugin {
@@ -41,6 +48,7 @@ impl Plugin for UIPlugin {
         app.add_systems(Update, spawn_ui_on_init)
             .add_systems(Update, update_energy_bar)
             .add_systems(Update, manage_songs)
+            .add_systems(Update, animate_sprites)
             .add_systems(Update, manage_start_button)
             .add_systems(Update, show_start_menu_ui)
             .add_systems(Update, update_energy_bar_fire);
@@ -160,7 +168,7 @@ pub fn manage_songs(
 }
 
 pub fn manage_start_button(
-    mut interaction_query: Query<(&mut TextureAtlasSprite, &Transform), With<StartMenuUI>>,
+    mut interaction_query: Query<(&mut TextureAtlasSprite, &Transform), With<StartButton>>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     mut click_events: EventReader<MouseButtonInput>,
     game_state: Res<State<GameState>>,
@@ -203,6 +211,32 @@ pub fn manage_start_button(
     }
 }
 
+pub fn animate_sprites(
+    time: Res<Time>,
+    game_state: Res<State<GameState>>,
+    mut query: Query<
+        (
+            &AnimationIndices,
+            &mut AnimationTimer,
+            &mut TextureAtlasSprite,
+        ),
+        With<StartMenuUI>,
+    >,
+) {
+    if *game_state.get() == GameState::StartMenu {
+        for (indices, mut timer, mut sprite) in &mut query {
+            timer.tick(time.delta());
+            if timer.just_finished() {
+                sprite.index = if sprite.index == indices.last {
+                    indices.first
+                } else {
+                    sprite.index + 1
+                };
+            }
+        }
+    }
+}
+
 pub fn show_start_menu_ui(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -225,6 +259,7 @@ pub fn show_start_menu_ui(
         let play_button_atlas_handle = texture_atlasses.add(play_button_atlas);
         commands.spawn((
             StartMenuUI,
+            StartButton,
             SpriteSheetBundle {
                 texture_atlas: play_button_atlas_handle,
                 transform: Transform::from_translation(Vec3::new(0., -260., 15.)),
@@ -235,6 +270,31 @@ pub fn show_start_menu_ui(
                 },
                 ..default()
             },
+        ));
+        let title_atlas = TextureAtlas::from_grid(
+            asset_server.load("sprites/title.png"),
+            Vec2 { x: 537., y: 330. },
+            1,
+            6,
+            None,
+            None,
+        );
+        let title_atlas_handle = texture_atlasses.add(title_atlas);
+        let animation_indices = AnimationIndices { first: 0, last: 5 };
+        commands.spawn((
+            StartMenuUI,
+            SpriteSheetBundle {
+                texture_atlas: title_atlas_handle,
+                transform: Transform::from_translation(Vec3::new(0., 0., 10.)),
+                sprite: TextureAtlasSprite {
+                    index: animation_indices.first,
+                    custom_size: Some(Vec2::from_array([537., 330.])),
+                    ..default()
+                },
+                ..default()
+            },
+            animation_indices,
+            AnimationTimer(Timer::from_seconds(0.2, TimerMode::Repeating)),
         ));
         commands.spawn((
             Background,
