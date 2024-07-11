@@ -1,5 +1,6 @@
 use crate::{
     controllers::PlayerControllerState,
+    entities::Background,
     game::{GameResources, GameState},
 };
 use bevy::{
@@ -13,7 +14,9 @@ use bevy::{
         ResMut, State, With,
     },
     render::view::Visibility,
-    sprite::{collide_aabb::collide, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    sprite::{
+        collide_aabb::collide, SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite,
+    },
     time::{Time, Timer, TimerMode},
     transform::components::Transform,
     window::{PrimaryWindow, Window},
@@ -74,20 +77,30 @@ pub fn update_energy_bar_fire(
 }
 
 pub fn update_energy_bar(
-    mut query: Query<&mut TextureAtlasSprite, With<EnergyBar>>,
+    mut query: Query<(&mut TextureAtlasSprite, &mut Visibility), With<EnergyBar>>,
     game_resources: Res<GameResources>,
+    game_state: Res<State<GameState>>,
 ) {
-    for mut energy_bar in &mut query {
-        let index = match game_resources.energy {
-            0.0..=0.25 => 1,
-            0.25..=0.4 => 2,
-            0.4..=0.55 => 3,
-            0.55..=0.7 => 4,
-            0.7..=0.85 => 5,
-            0.85..=1.0 => 6,
-            _ => 0,
-        };
-        energy_bar.index = index;
+    let state = *game_state.get();
+    for (mut energy_bar, mut visibility) in &mut query {
+        match state {
+            GameState::StartMenu | GameState::GameOver => {
+                *visibility = Visibility::Hidden;
+            }
+            _ => {
+                *visibility = Visibility::Visible;
+                let index = match game_resources.energy {
+                    0.0..=0.25 => 1,
+                    0.25..=0.4 => 2,
+                    0.4..=0.55 => 3,
+                    0.55..=0.7 => 4,
+                    0.7..=0.85 => 5,
+                    0.85..=1.0 => 6,
+                    _ => 0,
+                };
+                energy_bar.index = index;
+            }
+        }
     }
 }
 
@@ -209,6 +222,19 @@ pub fn show_start_menu_ui(
                 sprite: TextureAtlasSprite {
                     index: 0,
                     custom_size: Some(Vec2::from([224., 136.])),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+        commands.spawn((
+            Background,
+            StartMenuUI,
+            SpriteBundle {
+                texture: asset_server.load("sprites/bg.png"),
+                transform: Transform {
+                    translation: Vec3::from((0., 0., 0.)),
+                    scale: Vec3::from((2., 2., 1.)),
                     ..default()
                 },
                 ..default()
