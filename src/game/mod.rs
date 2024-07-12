@@ -1,6 +1,6 @@
 use crate::{
     controllers::PlayerControllerState,
-    entities::{EnemyEntity, EnemyType, PlayerAttached, PlayerEntity},
+    entities::{EnemyEntity, EnemyType, PlayerAttached, PlayerEntity, Score},
 };
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
@@ -17,6 +17,7 @@ pub const SPAWN_TIMER: f32 = 0.8;
 pub enum GameState {
     #[default]
     GameOver,
+    GameOverCleanup,
     Active,
     StartMenu,
     Pause,
@@ -39,7 +40,7 @@ impl Plugin for GamePlugin {
             .add_systems(Update, toggle_start)
             .add_systems(Update, update_time)
             .add_systems(Update, burn_energy)
-            .add_systems(Update, update_debug_text);
+            .add_systems(Update, render_score);
     }
 }
 
@@ -128,24 +129,19 @@ pub fn toggle_start(
     }
 }
 
-pub fn update_debug_text(
-    mut texts: Query<&mut Text>,
+pub fn render_score(
+    mut texts: Query<&mut Text, With<Score>>,
     game_state: Res<State<GameState>>,
     game_resources: Res<GameResources>,
 ) {
-    let state_str = match *game_state.get() {
-        GameState::Pause => "Pause",
-        GameState::Active => "Active",
-        GameState::GameOver => "Game Over",
-        GameState::StartMenu => "Start Menu",
-        GameState::Init => "Restarting",
-    };
     let score: &str = &game_resources.score.to_string();
-    let energy: &str = &format!("{:.1}%", 100. * game_resources.energy).to_string();
     for mut text in &mut texts {
-        text.sections[0].value = ["State: ", state_str, "\n"].join("").into();
-        text.sections[1].value = ["Score: ", score, "\n"].join("").into();
-        text.sections[2].value = ["Energy: ", energy].join("").into();
+        match *game_state.get() {
+            GameState::Active | GameState::GameOver | GameState::Pause => {
+                text.sections[0].value = score.into();
+            }
+            _ => text.sections[0].value = "".into(),
+        }
     }
 }
 

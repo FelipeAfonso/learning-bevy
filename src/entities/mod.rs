@@ -23,6 +23,8 @@ pub struct EnemyEntity {
     timer: f32,
 }
 #[derive(Component)]
+pub struct Score;
+#[derive(Component)]
 pub struct Background;
 #[derive(Resource)]
 struct EnemySpawner {
@@ -125,7 +127,7 @@ fn despawn_game_entities_on_game_over(
     mut next_game_state: ResMut<NextState<GameState>>,
     query: Query<Entity, With<GameEntity>>,
 ) {
-    if *game_state.get() == GameState::GameOver {
+    if *game_state.get() == GameState::GameOverCleanup {
         for entity in query.iter() {
             commands.entity(entity).despawn();
         }
@@ -251,40 +253,23 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(EnemySpawner {
         timer: Timer::new(Duration::from_secs_f32(SPAWN_TIMER), TimerMode::Repeating),
     });
-    commands.spawn(
-        TextBundle::from_sections([
-            TextSection::new(
-                "State: Active\n",
-                TextStyle {
-                    font_size: 20.,
-                    color: Color::WHITE,
-                    font: asset_server.load("fonts/geist.ttf"),
-                },
-            ),
-            TextSection::new(
-                "Score: 0",
-                TextStyle {
-                    font_size: 20.,
-                    color: Color::WHITE,
-                    font: asset_server.load("fonts/geist.ttf"),
-                },
-            ),
-            TextSection::new(
-                "Energy: 100%",
-                TextStyle {
-                    font_size: 20.,
-                    color: Color::WHITE,
-                    font: asset_server.load("fonts/geist.ttf"),
-                },
-            ),
-        ])
+    commands.spawn((
+        TextBundle::from_sections([TextSection::new(
+            "",
+            TextStyle {
+                font_size: 64.,
+                color: Color::WHITE,
+                font: asset_server.load("fonts/bigblueterm.ttf"),
+            },
+        )])
         .with_style(Style {
             position_type: PositionType::Absolute,
-            bottom: Val::Px(5.),
-            right: Val::Px(5.),
+            bottom: Val::Px(15.),
+            right: Val::Px(25.),
             ..default()
         }),
-    );
+        Score,
+    ));
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
             scaling_mode: ScalingMode::Fixed {
