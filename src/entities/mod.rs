@@ -127,7 +127,7 @@ fn despawn_game_entities_on_game_over(
     mut next_game_state: ResMut<NextState<GameState>>,
     query: Query<Entity, With<GameEntity>>,
 ) {
-    if *game_state.get() == GameState::GameOverCleanup {
+    if *game_state.get() == GameState::GameOver {
         for entity in query.iter() {
             commands.entity(entity).despawn();
         }

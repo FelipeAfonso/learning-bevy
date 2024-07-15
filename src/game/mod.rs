@@ -17,7 +17,6 @@ pub const SPAWN_TIMER: f32 = 0.8;
 pub enum GameState {
     #[default]
     GameOver,
-    GameOverCleanup,
     Active,
     StartMenu,
     Pause,
