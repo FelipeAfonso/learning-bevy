@@ -2,7 +2,7 @@ use crate::{
     controllers::PlayerControllerState,
     game::{GameState, MOVE_SPEED, SPAWN_TIMER, SPRINGINT_SPEED},
 };
-use bevy::{prelude::*, render::camera::ScalingMode, window::PrimaryWindow};
+use bevy::{prelude::*, render::camera::ScalingMode};
 use rand::Rng;
 use std::time::Duration;
 #[derive(Component)]
@@ -140,7 +140,6 @@ fn spawn_enemies(
     time: Res<Time>,
     mut config: ResMut<EnemySpawner>,
     asset_server: Res<AssetServer>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
     game_state: Res<State<GameState>>,
     mut texture_atlasses: ResMut<Assets<TextureAtlas>>,
 ) {
@@ -148,10 +147,9 @@ fn spawn_enemies(
         config.timer.tick(time.delta());
         if config.timer.finished() {
             let mut rng = rand::thread_rng();
-            let window = window_query.get_single().unwrap();
-            let enemy_type = match rand::random::<bool>() {
-                true => EnemyType::FLY,
-                false => EnemyType::MOSQUITO,
+            let enemy_type = match rand::random::<f32>() {
+                x if x < 0.7 => EnemyType::FLY,
+                _ => EnemyType::MOSQUITO,
             };
             let size = match enemy_type {
                 EnemyType::FLY => Vec2 { x: 16., y: 16. },
@@ -168,8 +166,8 @@ fn spawn_enemies(
                     AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating))
                 }
             };
-            let height = window.height() - size.y;
-            let width = window.width() - size.x;
+            let height = 720. - size.y;
+            let width = 1280. - size.x;
             let half_height = height / 2.;
             let half_width = width / 2.;
             let revert_direction = rand::random::<bool>();

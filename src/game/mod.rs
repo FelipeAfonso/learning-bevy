@@ -188,7 +188,13 @@ pub fn detect_intersection_player(
                             }
                             EnemyType::MOSQUITO => {
                                 game_resources.score += 2;
-                                game_resources.energy = 1.;
+                                game_resources.energy += match game_resources.energy {
+                                    e if (0.0..0.3).contains(&e) => 0.6,
+                                    e if (0.3..0.6).contains(&e) => 0.4,
+                                    e if (0.6..0.8).contains(&e) => 0.2,
+                                    e if (0.8..0.9).contains(&e) => 0.1,
+                                    _ => 0.,
+                                }
                             }
                         }
                     }
